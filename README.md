@@ -1,72 +1,86 @@
 # Nome do Projeto
 
 ## 1) Problema
-<!-- Escreva o problema sem falar de telas/tecnologias.
-     Responda: Quem sofre? Onde? O que atrapalha? Por que isso importa?
-     EXEMPLO: Em aulas práticas, alunos esperam muito para serem atendidos.
-     Há filas confusas e frustração. O professor não vê ordem nem tempo de espera.
-     Objetivo inicial: organizar a fila para reduzir a espera e garantir justiça. -->
+Muitos estudantes e pequenos grupos precisam compartilhar ideias, reflexões e discussões em um espaço simples e organizado.
+Objetivo inicial: fornecer um espaço simples e seguro para escrever posts e trocar comentários, sem distrações externas.
 
 ## 2) Atores e Decisores (quem usa / quem decide)
-<!-- Liste papéis (não nomes).
-     EXEMPLO:
-     Usuários principais: Alunos da turma de Desenvolvimento Web
-     Decisores/Apoiadores: Professores da disciplina; Coordenação do curso -->
+Visitantes (leem posts públicos)
+Usuários cadastrados (escrevem posts e comentários)
+Administrador (mantém moderação dos conteúdos)
 
 ## 3) Casos de uso (de forma simples)
-<!-- Formato "Ator: ações que pode fazer".
-     DICA: Use "Manter (inserir, mostrar, editar, remover)" quando for CRUD.
-     EXEMPLO:
-     Todos: Logar/deslogar do sistema; Manter dados cadastrais
-     Professor: Manter (inserir, mostrar, editar, remover) todos os chamados
-     Aluno: Manter (inserir, mostrar, editar, remover) seus chamados -->
+Todos: Registrar, logar/deslogar no sistema; Manter dados cadastrais.
+
+Usuário logado:
+
+Manter (inserir, mostrar, editar, remover) seus próprios posts.
+
+Manter (inserir, mostrar, editar, remover) seus comentários.
+
+Administrador:
+
+Manter (listar, mostrar, editar, remover) todos os posts.
+
+Manter (listar, mostrar, editar, remover) todos os comentários.
+
+Visitante: Visualizar posts e comentários (somente leitura).
 
 ## 4) Limites e suposições
-<!-- Simples assim:
-     - Limites = regras/prazos/obrigações que você não controla.
-     - Suposições = coisas que você espera ter e podem falhar.
-     - Plano B = como você segue com a 1ª fatia se algo falhar.
-     EXEMPLO:
-     Limites: entrega final até o fim da disciplina (ex.: 2025-11-30); rodar no navegador; sem serviços pagos.
-     Suposições: internet no laboratório; navegador atualizado; acesso ao GitHub; 10 min para teste rápido.
-     Plano B: sem internet → rodar local e salvar em arquivo/LocalStorage; sem tempo do professor → testar com 3 colegas. -->
+Limites: entrega final até o fim da disciplina (ex.: 2025-11-30); rodar no navegador; não usar serviços pagos.
+
+Suposições: internet disponível em laboratório; GitHub acessível; banco de dados remoto acessível; 10 min disponíveis para teste rápido.
+
+Plano B: sem internet → rodar local com SQLite e salvar dados em arquivo; sem tempo do professor → testar com 3 colegas.
 
 ## 5) Hipóteses + validação
-<!-- Preencha as duas frases abaixo. Simples e direto.
-     EXEMPLO Valor: Se o aluno ver sua posição na fila, sente mais controle e conclui melhor a atividade.
-     Validação: teste com 5 alunos; sucesso se ≥4 abrem/fecham chamado sem ajuda.
-     EXEMPLO Viabilidade: Com app no navegador (HTML/CSS/JS + armazenamento local),
-     criar e listar chamados responde em até 1 segundo na maioria das vezes (ex.: 9 de cada 10).
-     Validação: medir no protótipo com 30 ações; meta: pelo menos 27 de 30 ações (9/10) em 1s ou menos. -->
+Valor: Se os usuários puderem criar posts e trocar comentários em um espaço dedicado, terão mais organização e clareza nas discussões do que em redes sociais.
+
+Validação: teste com 5 usuários; sucesso se ≥4 conseguirem criar post, comentar e editar sem ajuda.
+
+Viabilidade: Com app web (React + Express + banco em nuvem), criar e listar posts e comentários deve responder em menos de 1 segundo em 9 de cada 10 ações.
+
+Validação: medir no protótipo com 30 ações; meta: pelo menos 27/30 em até 1s.
 
 ## 6) Fluxo principal e primeira fatia
-<!-- Pense “Entrada → Processo → Saída”.
-     EXEMPLO de Fluxo:
-     1) Aluno faz login
-     2) Clica em "Criar chamado" e descreve a dúvida
-     3) Sistema salva e coloca na fila
-     4) Lista mostra ordem e tempo desde criação
-     5) Professor encerra o chamado
-     EXEMPLO de 1ª fatia:
-     Inclui login simples, criar chamado, listar em ordem.
-     Critérios de aceite (objetivos): criar → aparece na lista com horário; encerrar → some ou marca "fechado". -->
-**Fluxo principal**  
+Fluxo principal
 
-**Primeira fatia vertical**  
+Usuário cria conta e faz login.
+
+Usuário acessa página de posts.
+
+Usuário cria um post.
+
+Outros usuários comentam no post.
+
+Usuário pode editar ou remover seus posts/comentários.
+
+Administrador pode moderar conteúdos.
+
+Primeira fatia vertical
+Inclui: login simples, criar post, listar posts, criar comentário.
+Critérios de aceite:
+
+Post criado → aparece na lista com título, autor e data.
+
+Comentário criado → aparece vinculado ao post.
+
+Logout → usuário não consegue mais criar/editar posts ou comentários.
 
 ## 7) Esboços de algumas telas (wireframes)
-<!-- Vale desenho no papel (foto), Figma, Excalidraw, etc. Não precisa ser bonito, precisa ser claro.
-     EXEMPLO de telas:
-     • Login
-     • Lista de chamados (ordem + tempo desde criação)
-     • Novo chamado (formulário simples)
-     • Painel do professor (atender/encerrar)
-     EXEMPLO de imagem:
-     ![Wireframe - Lista de chamados](img/wf-lista-chamados.png) -->
-[Links ou imagens dos seus rascunhos de telas aqui]
+Login/Registro
+
+Lista de posts (título, autor, data, nº de comentários)
+
+Detalhes do post (conteúdo + comentários listados)
+
+Criar post (formulário simples)
+
+Criar comentário (campo embaixo do post)
+
+Painel do admin (listar/remover posts e comentários)
 
 ## 8) Tecnologias
-<!-- Liste apenas o que você REALMENTE pretende usar agora. -->
 
 ### 8.1 Navegador
 **Navegador:** HTML/CSS/JS/Bootstrap  
@@ -86,15 +100,13 @@
 <!-- Defina só o essencial para criar o banco depois. -->
 
 ### 9.1 Entidades
-<!-- EXEMPLO:
-     - Usuario — pessoa que usa o sistema (aluno/professor)
-     - Chamado — pedido de ajuda criado por um usuário -->
-- [Entidade 1] — [o que representa em 1 linha]
-- [Entidade 2] — [...]
-- [Entidade 3] — [...]
+Usuário — pessoa que usa o sistema (autor de posts/comentários).
+
+Post — texto criado por um usuário.
+
+Comentário — resposta vinculada a um post.
 
 ### 9.2 Campos por entidade
-<!-- Use tipos simples: uuid, texto, número, data/hora, booleano, char. -->
 
 ### Usuario
 | Campo           | Tipo                          | Obrigatório | Exemplo            |
@@ -103,21 +115,35 @@
 | nome            | texto                         | sim         | "Ana Souza"        |
 | email           | texto                         | sim (único) | "ana@exemplo.com"  |
 | senha_hash      | texto                         | sim         | "$2a$10$..."       |
-| papel           | número (0=aluno, 1=professor) | sim         | 0                  |
+| papel           | número (0=usuario, 1=admin)   | sim         | 0                  |
 | dataCriacao     | data/hora                     | sim         | 2025-08-20 14:30   |
 | dataAtualizacao | data/hora                     | sim         | 2025-08-20 15:10   |
 
-### Chamado
+### Post
 | Campo           | Tipo               | Obrigatório | Exemplo                 |
 |-----------------|--------------------|-------------|-------------------------|
 | id              | número             | sim         | 2                       |
 | Usuario_id      | número (fk)        | sim         | 1                       |
-| texto           | texto              | sim         | "Erro ao compilar"      |
-| estado          | char               | sim         | 'a' \| 'f'              |
+| titulo          | texto              | sim         | "Dicas para React"      |
+| conteudo        | texto              | sim         | "React é..."            |
+| dataCriacao     | data/hora          | sim         | 2025-08-20 14:35        |
+| dataAtualizacao | data/hora          | sim         | 2025-08-20 14:50        |
+
+### Comentario
+| Campo           | Tipo               | Obrigatório | Exemplo                 |
+|-----------------|--------------------|-------------|-------------------------|
+| id              | número             | sim         | 2                       |
+| Usuario_id      | número (fk)        | sim         | 1                       |
+| post_id         | numero (fk)        | sim         | 5                       |
+| conteudo        | texto              | sim         | "Ótimo, obrigado!"      |
 | dataCriacao     | data/hora          | sim         | 2025-08-20 14:35        |
 | dataAtualizacao | data/hora          | sim         | 2025-08-20 14:50        |
 
 ### 9.3 Relações entre entidades
-<!-- Frases simples bastam. EXEMPLO:
-     Um Usuario tem muitos Chamados (1→N).
-     Um Chamado pertence a um Usuario (N→1). -->
+Um Usuário tem muitos Posts (1→N).
+
+Um Post pertence a um Usuário (N→1).
+
+Um Post tem muitos Comentários (1→N).
+
+Um Comentário pertence a um Usuário e a um Post (N→1).
