@@ -1,41 +1,121 @@
+// server.js
 import express from "express";
-
+import { pool } from "./db.js";
 const app = express();
 app.use(express.json());
-
-// rota de saúde
-app.get("/health", (req, res) => res.json({ ok: true }));
-
-// mini-API de tarefas em memória (sem banco ainda)
-const tasks = []; // [{id, title, done}]
-let nextId = 1;
-
-app.get("/tasks", (req, res) => res.json(tasks));
-
-app.post("/tasks", (req, res) => {
-    const { title } = req.body;
-    if (!title) return res.status(400).json({ error: "title é obrigatório" });
-    const task = { id: nextId++, title, done: false };
-    tasks.push(task);
-    res.status(201).json(task);
+// ROTAS
+app.get("/", async (_req, res) => {
+    try {
+        const rotas = {
+            "LISTAR":     "GET /produtos",
+            "MOSTRAR":    "GET /produtos/:id",
+            "CRIAR":      "POST /produtos BODY: { nome: 'string', preco: Number }",
+            "SUBSTITUIR": "PUT /produtos/:id BODY: { nome: 'string', preco: Number }",
+            "ATUALIZAR":  "PATCH /produtos/:id BODY: { nome: 'string' || preco: Number }",
+            "DELETAR":    "DELETE /produtos/:id",
+        }
+        res.json(rotas);
+    } catch {
+        res.status(500).json({ erro: "erro interno" });
+    }
 });
-
-app.patch("/tasks/:id", (req, res) => {
+// LISTAR
+app.get("/produtos", async (_req, res) => {
+    try {
+        const { rows } = await pool.query("SELECT * FROM produtos ORDER BY id DESC");
+        res.json(rows);
+    } catch {
+        res.status(500).json({ erro: "erro interno" });
+    }
+});
+// MOSTRAR (show)
+app.get("/produtos/:id", async (req, res) => {
     const id = Number(req.params.id);
-    const task = tasks.find(t => t.id === id);
-    if (!task) return res.status(404).json({ error: "não encontrada" });
-    if (typeof req.body.done === "boolean") task.done = req.body.done;
-    if (typeof req.body.title === "string") task.title = req.body.title;
-    res.json(task);
+    if (!Number.isInteger(id) || id <= 0) return res.status(400).json({ erro: "id inválido" });
+    try {
+        const { rows } = await pool.query("SELECT * FROM produtos WHERE id = $1", [id]);
+        if (!rows[0]) return res.status(404).json({ erro: "não encontrado" });
+        res.json(rows[0]);
+    } catch {
+        res.status(500).json({ erro: "erro interno" });
+    }
 });
-
-app.delete("/tasks/:id", (req, res) => {
+// CRIAR
+app.post("/produtos", async (req, res) => {
+    const { nome, preco } = req.body ?? {};
+    const p = Number(preco);
+    // preco deve ser número >= 0
+    if (!nome || preco == null || Number.isNaN(p) || p < 0) {
+        return res.status(400).json({ erro: "nome e preco (>= 0) obrigatórios" });
+    }
+    try {
+        const { rows } = await pool.query(
+            "INSERT INTO produtos (nome, preco) VALUES ($1, $2) RETURNING *",
+            [nome, p]
+        );
+        res.status(201).json(rows[0]);
+    } catch {
+        res.status(500).json({ erro: "erro interno" });
+    }
+});
+// SUBSTITUIR (PUT) — envia todos os campos
+app.put("/produtos/:id", async (req, res) => {
     const id = Number(req.params.id);
-    const i = tasks.findIndex(t => t.id === id);
-    if (i === -1) return res.status(404).json({ error: "não encontrada" });
-    tasks.splice(i, 1);
-    res.status(204).send();
+    const { nome, preco } = req.body ?? {};
+    const p = Number(preco);
+    if (!Number.isInteger(id) || id <= 0) return res.status(400).json({ erro: "id inválido" });
+    if (!nome || preco == null || Number.isNaN(p) || p < 0) {
+        return res.status(400).json({ erro: "nome e preco (>= 0) obrigatórios" });
+    }
+    try {
+        const { rows } = await pool.query(
+            "UPDATE produtos SET nome = $1, preco = $2 WHERE id = $3 RETURNING *",
+            [nome, p, id]
+        );
+        if (!rows[0]) return res.status(404).json({ erro: "não encontrado" });
+        res.json(rows[0]);
+    } catch {
+        res.status(500).json({ erro: "erro interno" });
+    }
 });
-
+// ATUALIZAR (PATCH) — envia só o que quiser
+// COALESCE(a, b): devolve 'a' quando 'a' NÃO é NULL; caso seja NULL, devolve 'b'.
+// Aqui: se não enviar um campo, passamos NULL e o COALESCE mantém o valor atual do banco.
+app.patch("/produtos/:id", async (req, res) => {
+    const id = Number(req.params.id);
+    const { nome, preco } = req.body ?? {};
+    if (!Number.isInteger(id) || id <= 0) return res.status(400).json({ erro: "id inválido" });
+    if (nome === undefined && preco === undefined) return res.status(400).json({ erro: "envie nome e/ou preco" });
+    // Se 'preco' foi enviado, precisa ser número >= 0
+    let p = null;
+    if (preco !== undefined) {
+        p = Number(preco);
+        if (Number.isNaN(p) || p < 0) {
+            return res.status(400).json({ erro: "preco deve ser número >= 0" });
+        }
+    }
+    try {
+        const { rows } = await pool.query(
+            "UPDATE produtos SET nome = COALESCE($1, nome), preco = COALESCE($2, preco) WHERE id = $3 RETURNING *",
+            [nome ?? null, p, id]
+        );
+        if (!rows[0]) return res.status(404).json({ erro: "não encontrado" });
+        res.json(rows[0]);
+    } catch {
+        res.status(500).json({ erro: "erro interno" });
+    }
+});
+// DELETAR
+app.delete("/produtos/:id", async (req, res) => {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id) || id <= 0) return res.status(400).json({ erro: "id inválido" });
+    try {
+        const r = await pool.query("DELETE FROM produtos WHERE id = $1 RETURNING id", [id]);
+        if (!r.rowCount) return res.status(404).json({ erro: "não encontrado" });
+        res.status(204).end();
+    } catch {
+        res.status(500).json({ erro: "erro interno" });
+    }
+});
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`API rodando em http://localhost:${PORT}`));
+app.listen(PORT, () => console.log(`http://localhost:${PORT}`));

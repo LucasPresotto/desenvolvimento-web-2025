@@ -1,4 +1,4 @@
-# Nome do Projeto
+# wYZe
 
 ## 1) Problema
 Muitos estudantes e pequenos grupos precisam compartilhar ideias, reflexões e discussões em um espaço simples e organizado.
@@ -119,11 +119,20 @@ Comentário — resposta vinculada a um post.
 | dataCriacao     | data/hora                     | sim         | 2025-08-20 14:30   |
 | dataAtualizacao | data/hora                     | sim         | 2025-08-20 15:10   |
 
+### Categoria
+| Campo           | Tipo               | Obrigatório | Exemplo                 |
+|-----------------|--------------------|-------------|-------------------------|
+| id              | número             | sim         | 3                       |
+| nome            | texto              | sim         | "Tecnologia"            |
+| descricao       | texto              | sim         | "Categoria..."          |
+| dataCriacao     | data/hora          | sim         | 2025-08-20 14:35        |
+
 ### Post
 | Campo           | Tipo               | Obrigatório | Exemplo                 |
 |-----------------|--------------------|-------------|-------------------------|
 | id              | número             | sim         | 2                       |
 | Usuario_id      | número (fk)        | sim         | 1                       |
+| categoria_id    | número (fk)        | não         | 3                       |
 | titulo          | texto              | sim         | "Dicas para React"      |
 | conteudo        | texto              | sim         | "React é..."            |
 | dataCriacao     | data/hora          | sim         | 2025-08-20 14:35        |
@@ -139,11 +148,113 @@ Comentário — resposta vinculada a um post.
 | dataCriacao     | data/hora          | sim         | 2025-08-20 14:35        |
 | dataAtualizacao | data/hora          | sim         | 2025-08-20 14:50        |
 
+### Like_posts
+| Campo           | Tipo               | Obrigatório | Exemplo                 |
+|-----------------|--------------------|-------------|-------------------------|
+| id              | número             | sim         | 2                       |
+| Usuario_id      | número (fk)        | sim         | 1                       |
+| post_id         | numero (fk)        | sim         | 5                       |
+| dataCriacao     | data/hora          | sim         | 2025-08-20 14:35        |
+
+### Like_comentarios
+| Campo           | Tipo               | Obrigatório | Exemplo                 |
+|-----------------|--------------------|-------------|-------------------------|
+| id              | número             | sim         | 2                       |
+| Usuario_id      | número (fk)        | sim         | 1                       |
+| comentario_id   | numero (fk)        | sim         | 5                       |
+| dataCriacao     | data/hora          | sim         | 2025-08-20 14:35        |
+
 ### 9.3 Relações entre entidades
-Um Usuário tem muitos Posts (1→N).
+- Um Usuário tem muitos Posts (1→N).
 
-Um Post pertence a um Usuário (N→1).
+- Um Post pertence a um Usuário (N→1).
 
-Um Post tem muitos Comentários (1→N).
+- Um Post tem muitos Comentários (1→N).
 
-Um Comentário pertence a um Usuário e a um Post (N→1).
+- Um Comentário pertence a um Usuário e a um Post (N→1).
+
+- Um Post pertence a 0 ou muitas Categoria (N→1).
+
+- Um Post pode ter muitas Curtidas (N→1).
+
+- Um Comentário pode ter muitas Curtidas (N→1).
+
+- Um Usuário pode curtir vários posts e comentários (N→1).
+
+### 9.4 Modelagem do banco de dados no POSTGRES
+
+```sql
+CREATE TABLE Usuarios (
+  id                SERIAL       PRIMARY KEY,
+  nome              VARCHAR(255) NOT NULL,
+  email             VARCHAR(255) NOT NULL UNIQUE,
+  senha_hash        VARCHAR(255) NOT NULL,
+  papel             SMALLINT     NOT NULL CHECK (papel IN (0,1)),
+  data_criacao      TIMESTAMP    NOT NULL DEFAULT now(),
+  data_atualizacao  TIMESTAMP    NOT NULL DEFAULT now()
+);
+
+CREATE TABLE Categorias (
+  id                SERIAL       PRIMARY KEY,
+  nome              VARCHAR(255) NOT NULL UNIQUE,
+  descricao         VARCHAR(255) NOT NULL,
+  data_criacao      TIMESTAMP    NOT NULL DEFAULT now()
+);
+
+CREATE TABLE Posts (
+  id                SERIAL       PRIMARY KEY,
+  Usuario_id        INTEGER      NOT NULL REFERENCES Usuarios(id) ON DELETE CASCADE,
+  categoria_id      INTEGER      REFERENCES Categoria(id) ON DELETE SET NULL,
+  titulo            VARCHAR(255) NOT NULL,
+  conteudo          VARCHAR(255) NOT NULL,
+  data_criacao      TIMESTAMP    NOT NULL DEFAULT now(),
+  data_atualizacao  TIMESTAMP    NOT NULL DEFAULT now()
+);
+
+CREATE TABLE Comentarios (
+  id                SERIAL       PRIMARY KEY,
+  post_id           INTEGER      NOT NULL REFERENCES Posts(id) ON DELETE CASCADE,
+  Usuario_id        INTEGER      NOT NULL REFERENCES Usuarios(id) ON DELETE SET NULL,
+  conteudo          VARCHAR(255) NOT NULL,
+  data_criacao      TIMESTAMP    NOT NULL DEFAULT now(),
+  data_atualizacao  TIMESTAMP    NOT NULL DEFAULT now()
+);
+
+CREATE TABLE Like_posts (
+  id                SERIAL       PRIMARY KEY,
+  post_id           INTEGER      NOT NULL UNIQUE REFERENCES Posts(id) ON DELETE CASCADE,
+  Usuario_id        INTEGER      NOT NULL UNIQUE REFERENCES Usuarios(id) ON DELETE CASCADE,
+  data_criacao      TIMESTAMP    NOT NULL DEFAULT now()
+);
+
+CREATE TABLE Like_comentarios (
+  id                SERIAL       PRIMARY KEY,
+  comentario_id     INTEGER      NOT NULL UNIQUE REFERENCES Comentarios(id) ON DELETE CASCADE,
+  Usuario_id        INTEGER      NOT NULL UNIQUE REFERENCES Usuarios(id) ON DELETE CASCADE,
+  data_criacao      TIMESTAMP    NOT NULL DEFAULT now()
+);
+
+INSERT INTO Usuarios (nome, email, senha_hash, papel) VALUES
+('Usuário', 'user@user.com.br', '123', 0),
+('Admin',   'admin@admin.com.br', '123', 1);
+
+INSERT INTO Categorias (nome, descricao) VALUES
+('Tecnologia', 'Categoria sobre...'),
+('Entreterimento', 'descricao');
+
+INSERT INTO Posts (Usuario_id, categoria_id, titulo, conteudo) VALUES
+(1, 2, 'Primeiro Post', 'Meu primeiro post'),
+(2, 1, 'Imagem', 'Olha essa imagem');
+
+INSERT INTO Comentarios (post_id, usuario_id, conteudo) VALUES
+(1, 2, 'Meuito legal'),
+(2, 1, 'Ótimo');
+
+INSERT INTO Like_posts (post_id, usuario_id) VALUES
+(1, 2),
+(2, 1);
+
+INSERT INTO Like_comentarios (comentario_id, usuario_id) VALUES
+(1, 2),
+(2, 1);
+```
