@@ -1,8 +1,18 @@
-DROP DATABASE IF EXISTS rede_api_db;
-CREATE DATABASE rede_api_db;
-\c rede_api_db;
+\echo
 
-CREATE TABLE Usuarios (
+\encoding UTF8
+
+SET client_encoding = 'UTF8';
+
+\set ON_ERROR_STOP ON
+
+DROP DATABASE IF EXISTS redesocial_api_db;
+
+CREATE DATABASE redesocial_api_db;
+
+\connect redesocial_api_db
+
+CREATE TABLE IF NOT EXISTS Usuarios (
   id                SERIAL       PRIMARY KEY,
   nome              VARCHAR(255) NOT NULL,
   email             VARCHAR(255) NOT NULL UNIQUE,
@@ -12,14 +22,14 @@ CREATE TABLE Usuarios (
   data_atualizacao  TIMESTAMP    NOT NULL DEFAULT now()
 );
 
-CREATE TABLE Categorias (
+CREATE TABLE IF NOT EXISTS Categorias (
   id                SERIAL       PRIMARY KEY,
   nome              VARCHAR(255) NOT NULL UNIQUE,
   descricao         VARCHAR(255) NOT NULL,
   data_criacao      TIMESTAMP    NOT NULL DEFAULT now()
 );
 
-CREATE TABLE Posts (
+CREATE TABLE IF NOT EXISTS Posts (
   id                SERIAL       PRIMARY KEY,
   Usuario_id        INTEGER      NOT NULL REFERENCES Usuarios(id) ON DELETE CASCADE,
   categoria_id      INTEGER      REFERENCES Categoria(id) ON DELETE SET NULL,
@@ -29,7 +39,7 @@ CREATE TABLE Posts (
   data_atualizacao  TIMESTAMP    NOT NULL DEFAULT now()
 );
 
-CREATE TABLE Comentarios (
+CREATE TABLE IF NOT EXISTS Comentarios (
   id                SERIAL       PRIMARY KEY,
   post_id           INTEGER      NOT NULL REFERENCES Posts(id) ON DELETE CASCADE,
   Usuario_id        INTEGER      NOT NULL REFERENCES Usuarios(id) ON DELETE SET NULL,
@@ -38,14 +48,14 @@ CREATE TABLE Comentarios (
   data_atualizacao  TIMESTAMP    NOT NULL DEFAULT now()
 );
 
-CREATE TABLE Like_posts (
+CREATE TABLE IF NOT EXISTS Like_posts (
   id                SERIAL       PRIMARY KEY,
   post_id           INTEGER      NOT NULL UNIQUE REFERENCES Posts(id) ON DELETE CASCADE,
   Usuario_id        INTEGER      NOT NULL UNIQUE REFERENCES Usuarios(id) ON DELETE CASCADE,
   data_criacao      TIMESTAMP    NOT NULL DEFAULT now()
 );
 
-CREATE TABLE Like_comentarios (
+CREATE TABLE IF NOT EXISTS Like_comentarios (
   id                SERIAL       PRIMARY KEY,
   comentario_id     INTEGER      NOT NULL UNIQUE REFERENCES Comentarios(id) ON DELETE CASCADE,
   Usuario_id        INTEGER      NOT NULL UNIQUE REFERENCES Usuarios(id) ON DELETE CASCADE,
