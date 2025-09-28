@@ -1,53 +1,25 @@
-// routes/chamados.routes.js — rotas de CHAMADOS
-// -----------------------------------------------------------------------------
-// OBJETIVO DESTE ARQUIVO
-// -----------------------------------------------------------------------------
-// Reunir todas as rotas (endpoints) do recurso "Chamados" usando um Router
-// do Express. No app principal, este Router será montado sob o prefixo
-// /api/chamados. Ex.: app.use("/api/chamados", chamadosRouter)
-//
-// SOBRE A TABELA (resumo):
-//   id              SERIAL PK
-//   Usuarios_id     INTEGER NOT NULL  (FK -> Usuarios.id)
-//   texto           VARCHAR(255) NOT NULL
-//   estado          CHAR(1) NOT NULL  ('a' = aberto, 'f' = fechado)
-//   urlImagem       VARCHAR(255) NULL
-//   data_criacao    TIMESTAMP DEFAULT now()
-//   data_atualizacao TIMESTAMP DEFAULT now()
-//
-// CONCEITOS-CHAVE (bem direto):
-// - Router: "mini-app" de rotas relacionadas ao mesmo assunto (aqui: chamados).
-// - req.params: parâmetros na URL (ex.: /:id).
-// - req.body: JSON enviado pelo cliente (precisa de app.use(express.json()) no app).
-// - pool.query(SQL, [valores]): executa SQL com parâmetros ($1, $2, ...).
-// - RETURNING *: no INSERT/UPDATE, retorna a linha afetada (útil para responder).
-// - Códigos HTTP: 200 OK, 201 Created, 204 No Content, 400 Bad Request,
-//                 404 Not Found, 500 Internal Server Error.
-// -----------------------------------------------------------------------------
 import { Router } from "express";
 import { pool } from "../database/db.js";
 const router = Router(); // cria o "mini-app" de rotas
-// Função utilitária simples para validar o campo "estado"
-const isEstadoValido = (s) => s === "a" || s === "f";
 // -----------------------------------------------------------------------------
-// LISTAR — GET /api/chamados
+// LISTAR — GET /api/posts
 // -----------------------------------------------------------------------------
-// Objetivo: retornar TODOS os chamados.
+// Objetivo: retornar TODOS os posts.
 // Obs.: Ordenamos por id DESC para mostrar os mais recentes primeiro.
 router.get("/", async (_req, res) => {
   try {
     const { rows } = await pool.query(
-      "SELECT * FROM chamados ORDER BY id DESC"
+      "SELECT * FROM Posts ORDER BY id DESC"
     );
-    res.json(rows); // 200 OK (array de chamados)
+    res.json(rows); 
   } catch {
     res.status(500).json({ erro: "erro interno" });
   }
 });
 // -----------------------------------------------------------------------------
-// MOSTRAR — GET /api/chamados/:id
+// MOSTRAR — GET /api/posts/:id
 // -----------------------------------------------------------------------------
-// Objetivo: retornar UM chamado específico pelo id.
+// Objetivo: retornar UM post específico pelo id.
 router.get("/:id", async (req, res) => {
   // req.params.id é string → converter p/ número
   const id = Number(req.params.id);
@@ -57,7 +29,7 @@ router.get("/:id", async (req, res) => {
   }
   try {
     const { rows } = await pool.query(
-      "SELECT * FROM chamados WHERE id = $1",
+      "SELECT * FROM Posts WHERE id = $1",
       [id]
     );
     if (!rows[0]) return res.status(404).json({ erro: "não encontrado" });
@@ -67,97 +39,94 @@ router.get("/:id", async (req, res) => {
   }
 });
 // -----------------------------------------------------------------------------
-// CRIAR — POST /api/chamados
+// CRIAR — POST /api/posts
 // -----------------------------------------------------------------------------
-// Objetivo: inserir um novo chamado.
-// Espera JSON: { Usuarios_id, texto, estado?, urlImagem? }
+// Objetivo: inserir um novo post.
+// Espera JSON: { Usuarios_id, tipo, conteudo }
 // Regras básicas:
 // - Usuarios_id: inteiro > 0 (FK para Usuarios.id).
-// - texto: string não vazia.
-// - estado: 'a' ou 'f'. Se não mandar, vamos assumir 'a' (aberto).
-// - urlImagem: opcional (string). Pode ser undefined/null.
+// - tipo: inteiro (0 para texto, 1 para imagem e 3 para vídeo).
+// - conteudo: texto não nulo.
 router.post("/", async (req, res) => {
   // Se req.body vier undefined (cliente não mandou JSON), "?? {}" usa objeto vazio
-  const { Usuarios_id, texto, estado, urlImagem } = req.body ?? {};
+  const { Usuario_id, tipo, conteudo} = req.body ?? {};
   // Convertendo tipos e validando entradas:
-  const uid = Number(Usuarios_id);
+  const uid = Number(Usuario_id);
   const temUidValido = Number.isInteger(uid) && uid > 0;
-  const temTextoValido = typeof texto === "string" && texto.trim() !== "";
-  const est = estado ?? "a"; // se não enviar estado, padrão "a" (aberto)
-  const temEstadoValido = isEstadoValido(est);
-  if (!temUidValido || !temTextoValido || !temEstadoValido) {
+  const temConteudoValido = typeof conteudo === "string" && conteudo.trim() !== "";
+  const t = Number(tipo);
+  const temTipoValido = Number.isInteger(t) && (t == 0 || t == 1 || t == 2);
+  if (!temUidValido || !temConteudoValido || !temTipoValido) {
     return res.status(400).json({
       erro:
-        "Campos obrigatórios: Usuarios_id (inteiro>0), texto (string) e estado ('a' ou 'f' — se ausente, assume 'a')",
+        "Campos obrigatórios: Usuario_id (inteiro>0), tipo (inteiro - 0,1 ou 2 ) e conteudo (texto não nulo)",
     });
   }
   try {
     const { rows } = await pool.query(
-      `INSERT INTO chamados (Usuarios_id, texto, estado, urlImagem)
-       VALUES ($1, $2, $3, $4)
+      `INSERT INTO posts (Usuario_id, tipo, conteudo)
+       VALUES ($1, $2, $3)
        RETURNING *`,
-      [uid, texto.trim(), est, urlImagem ?? null]
+      [uid, t, conteudo.trim()]
     );
     // 201 Created + retornamos o chamado criado (inclui id gerado)
     res.status(201).json(rows[0]);
   } catch (e) {
-    // Se a FK (Usuarios_id) não existir, o Postgres lança erro 23503
+    // Se a FK (Usuario_id) não existir, o Postgres lança erro 23503
     if (e?.code === "23503") {
       return res
         .status(400)
-        .json({ erro: "Usuarios_id não existe (violação de chave estrangeira)" });
+        .json({ erro: "Usuario_id não existe (violação de chave estrangeira)" });
     }
     res.status(500).json({ erro: "erro interno" });
   }
 });
 // -----------------------------------------------------------------------------
-// SUBSTITUIR — PUT /api/chamados/:id
+// SUBSTITUIR — PUT /api/posts/:id
 // -----------------------------------------------------------------------------
-// Objetivo: substituir TODOS os campos do chamado (representação completa).
-// Espera JSON completo: { Usuarios_id, texto, estado, urlImagem? }
+// Objetivo: substituir TODOS os campos do post (representação completa).
 router.put("/:id", async (req, res) => {
   const id = Number(req.params.id);
-  const { Usuarios_id, texto, estado, urlImagem } = req.body ?? {};
+  const { Usuario_id, tipo, conteudo } = req.body ?? {};
   // Valida id
   if (!Number.isInteger(id) || id <= 0) {
     return res.status(400).json({ erro: "id inválido" });
   }
   // Valida campos
-  const uid = Number(Usuarios_id);
+  const uid = Number(Usuario_id);
   const temUidValido = Number.isInteger(uid) && uid > 0;
-  const temTextoValido = typeof texto === "string" && texto.trim() !== "";
-  const temEstadoValido = isEstadoValido(estado);
-  if (!temUidValido || !temTextoValido || !temEstadoValido) {
+  const temConteudoValido = typeof conteudo === "string" && conteudo.trim() !== "";
+  const temTipoValido = Number.isInteger(tipo) && (tipo == 0 || tipo == 1 || tipo == 2);
+  if (!temUidValido || !temConteudoValido || !temTipoValido) {
     return res.status(400).json({
       erro:
-        "Para PUT, envie todos os campos: Usuarios_id (inteiro>0), texto (string), estado ('a' | 'f') e urlImagem (opcional)",
+        "Para PUT, envie todos os campos: Usuario_id (inteiro>0), tipo (interio - 0,1 ou 2) texto (string)",
     });
   }
   try {
     const { rows } = await pool.query(
-      `UPDATE chamados
-         SET Usuarios_id = $1,
-             texto       = $2,
-             estado      = $3,
-             urlImagem   = $4,
+      `UPDATE posts
+         SET Usuario_id = $1,
+             tipo        = $2,
+             conteudo    = $3,
              data_atualizacao = now()
-       WHERE id = $5
+       WHERE id = $4
        RETURNING *`,
-      [uid, texto.trim(), estado, urlImagem ?? null, id]
+      [uid, tipo, conteudo.trim(), id]
     );
     if (!rows[0]) return res.status(404).json({ erro: "não encontrado" });
-    res.json(rows[0]); // 200 OK - chamado substituído
+    res.json(rows[0]); // 200 OK - post substituído
   } catch (e) {
     if (e?.code === "23503") {
       return res
         .status(400)
-        .json({ erro: "Usuarios_id não existe (violação de chave estrangeira)" });
+        .json({ erro: "Usuario_id não existe (violação de chave estrangeira)" });
     }
     res.status(500).json({ erro: "erro interno" });
   }
 });
 // -----------------------------------------------------------------------------
-// ATUALIZAR — PATCH /api/chamados/:id
+// ATUALIZAR — PATCH /api/posts/:id
 // -----------------------------------------------------------------------------
 // Objetivo: atualizar APENAS os campos enviados (parcial).
 // Regras de validação:
@@ -167,56 +136,52 @@ router.put("/:id", async (req, res) => {
 // - Se não enviar nada, respondemos 400 (não há o que atualizar).
 router.patch("/:id", async (req, res) => {
   const id = Number(req.params.id);
-  const { Usuarios_id, texto, estado, urlImagem } = req.body ?? {};
+  const { Usuario_id, tipo, conteudo } = req.body ?? {};
   // Valida id
   if (!Number.isInteger(id) || id <= 0) {
     return res.status(400).json({ erro: "id inválido" });
   }
   // Se nenhum campo foi enviado, não faz sentido atualizar
   if (
-    Usuarios_id === undefined &&
-    texto === undefined &&
-    estado === undefined &&
-    urlImagem === undefined
+    Usuario_id === undefined &&
+    tipo === undefined &&
+    conteudo === undefined 
   ) {
     return res.status(400).json({ erro: "envie ao menos um campo para atualizar" });
   }
   // Validar cada campo somente se ele foi enviado:
   let uid = null;
-  if (Usuarios_id !== undefined) {
-    uid = Number(Usuarios_id);
+  if (Usuario_id !== undefined) {
+    uid = Number(Usuario_id);
     if (!Number.isInteger(uid) || uid <= 0) {
-      return res.status(400).json({ erro: "Usuarios_id deve ser inteiro > 0" });
+      return res.status(400).json({ erro: "Usuario_id deve ser inteiro > 0" });
     }
   }
-  let novoTexto = null;
-  if (texto !== undefined) {
-    if (typeof texto !== "string" || texto.trim() === "") {
+  let novoTipo = null;
+  if (tipo !== undefined) {
+    if (Number.isInteger(tipo) && (tipo == 0 || tipo == 1 || tipo == 2)) {
+      return res.status(400).json({ erro: "tipo deve ser 0, 1 ou 2" });
+    }
+    novoTipo = tipo;
+  }
+  let novoConteudo = null;
+  if (conteudo !== undefined) {
+    if (typeof conteudo !== "string" || conteudo.trim() === "") {
       return res.status(400).json({ erro: "texto deve ser string não vazia" });
     }
-    novoTexto = texto.trim();
+    novoConteudo = conteudo.trim();
   }
-  let novoEstado = null;
-  if (estado !== undefined) {
-    if (!isEstadoValido(estado)) {
-      return res.status(400).json({ erro: "estado deve ser 'a' ou 'f'" });
-    }
-    novoEstado = estado;
-  }
-  // urlImagem pode ser undefined (não mexe), string (atualiza) ou null (limpa)
-  // Aqui, se não vier, passamos null para COALESCE manter o valor atual.
-  const novaUrl = urlImagem === undefined ? null : urlImagem;
+  
   try {
     const { rows } = await pool.query(
-      `UPDATE chamados
-         SET Usuarios_id      = COALESCE($1, Usuarios_id),
-             texto            = COALESCE($2, texto),
-             estado           = COALESCE($3, estado),
-             urlImagem        = COALESCE($4, urlImagem),
+      `UPDATE posts
+         SET Usuario_id       = COALESCE($1, Usuario_id),
+             tipo             = COALESCE($2, tipo)
+             conteudo         = COALESCE($3, conteudo),
              data_atualizacao = now()
-       WHERE id = $5
+       WHERE id = $4
        RETURNING *`,
-      [uid, novoTexto, novoEstado, novaUrl, id]
+      [uid, novoTipo, novoConteudo, id]
     );
     if (!rows[0]) return res.status(404).json({ erro: "não encontrado" });
     res.json(rows[0]); // 200 OK - chamado atualizado parcialmente
@@ -224,15 +189,15 @@ router.patch("/:id", async (req, res) => {
     if (e?.code === "23503") {
       return res
         .status(400)
-        .json({ erro: "Usuarios_id não existe (violação de chave estrangeira)" });
+        .json({ erro: "Usuario_id não existe (violação de chave estrangeira)" });
     }
     res.status(500).json({ erro: "erro interno" });
   }
 });
 // -----------------------------------------------------------------------------
-// DELETAR — DELETE /api/chamados/:id
+// DELETAR — DELETE /api/posts/:id
 // -----------------------------------------------------------------------------
-// Objetivo: remover um chamado existente. Retorna 204 No Content se der certo.
+// Objetivo: remover um post existente. Retorna 204 No Content se der certo.
 router.delete("/:id", async (req, res) => {
   const id = Number(req.params.id);
   if (!Number.isInteger(id) || id <= 0) {
@@ -240,7 +205,7 @@ router.delete("/:id", async (req, res) => {
   }
   try {
     const r = await pool.query(
-      "DELETE FROM chamados WHERE id = $1 RETURNING id",
+      "DELETE FROM posts WHERE id = $1 RETURNING id",
       [id]
     );
     if (!r.rowCount) return res.status(404).json({ erro: "não encontrado" });
@@ -249,30 +214,7 @@ router.delete("/:id", async (req, res) => {
     res.status(500).json({ erro: "erro interno" });
   }
 });
-// -----------------------------------------------------------------------------
-// (Opcional) ROTA DE AÇÃO: FECHAR CHAMADO — PATCH /api/chamados/:id/fechar
-// -----------------------------------------------------------------------------
-// Objetivo: atalho para mudar o estado para 'f' (fechado).
-router.patch("/:id/fechar", async (req, res) => {
-  const id = Number(req.params.id);
-  if (!Number.isInteger(id) || id <= 0) {
-    return res.status(400).json({ erro: "id inválido" });
-  }
-  try {
-    const { rows } = await pool.query(
-      `UPDATE chamados
-         SET estado = 'f',
-             data_atualizacao = now()
-       WHERE id = $1
-       RETURNING *`,
-      [id]
-    );
-    if (!rows[0]) return res.status(404).json({ erro: "não encontrado" });
-    res.json(rows[0]);
-  } catch {
-    res.status(500).json({ erro: "erro interno" });
-  }
-});
+
 export default router;
 // -----------------------------------------------------------------------------
 // COMO "MONTAR" ESTE ROUTER NO APP PRINCIPAL (exemplo):

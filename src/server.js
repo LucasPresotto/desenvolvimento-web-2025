@@ -21,7 +21,7 @@
 // -----------------------------------------------------------------------------
 import express from "express";
 import dotenv from "dotenv";
-import chamadosRouter from "./routes/chamados.routes.js";
+import postsRouter from "./routes/posts.routes.js";
 dotenv.config();
 // ↑ Lê o arquivo .env (se existir) e popula process.env com as chaves definidas.
 //   Importante: chame dotenv.config() antes de acessar qualquer process.env.
@@ -40,13 +40,13 @@ app.use(express.json());
 // -----------------------------------------------------------------------------
 app.get("/", (_req, res) => {
   res.json({
-    // CHAMADOS
-    LISTAR:     "GET /api/chamados",
-    MOSTRAR:    "GET /api/chamados/:id",
-    CRIAR:      "POST /api/chamados  BODY: { Usuarios_id: number, texto: 'string', estado?: 'a'|'f', urlImagem?: 'string' }",
-    SUBSTITUIR: "PUT /api/chamados/:id  BODY: { Usuarios_id: number, texto: 'string', estado: 'a'|'f', urlImagem?: 'string' }",
-    ATUALIZAR:  "PATCH /api/chamados/:id  BODY: { Usuarios_id?: number, texto?: 'string', estado?: 'a'|'f', urlImagem?: 'string' }",
-    DELETAR:    "DELETE /api/chamados/:id",
+    // POSTS
+    LISTAR:     "GET /api/posts",
+    MOSTRAR:    "GET /api/posts/:id",
+    CRIAR:      "POST /api/posts  BODY: { Usuario_id: number, tipo: number, texto: 'string' }",
+    SUBSTITUIR: "PUT /api/posts/:id  BODY: { Usuario_id: number, tipo: number, texto: 'string' }",
+    ATUALIZAR:  "PATCH /api/posts/:id  BODY: { Usuario_id: number, tipo: number, texto: 'string' }",
+    DELETAR:    "DELETE /api/posts/:id",
   });
 });
 // -----------------------------------------------------------------------------
@@ -63,7 +63,7 @@ app.get("/", (_req, res) => {
 //     PATCH  /api/chamados/:id
 //     DELETE /api/chamados/:id
 // -----------------------------------------------------------------------------
-app.use("/api/chamados", chamadosRouter);
+app.use("/api/posts", postsRouter);
 // -----------------------------------------------------------------------------
 // INICIANDO O SERVIDOR
 // - process.env.PORT permite definir a porta via ambiente (ex.: PORT=8080).

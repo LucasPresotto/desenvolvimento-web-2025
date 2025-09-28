@@ -113,27 +113,19 @@ Comentário — resposta vinculada a um post.
 |-----------------|-------------------------------|-------------|--------------------|
 | id              | número                        | sim         | 1                  |
 | nome            | texto                         | sim         | "Ana Souza"        |
+| user            | texto                         | sim         | "ana_souza"        |
 | email           | texto                         | sim (único) | "ana@exemplo.com"  |
 | senha_hash      | texto                         | sim         | "$2a$10$..."       |
 | papel           | número (0=usuario, 1=admin)   | sim         | 0                  |
 | dataCriacao     | data/hora                     | sim         | 2025-08-20 14:30   |
 | dataAtualizacao | data/hora                     | sim         | 2025-08-20 15:10   |
 
-### Categoria
-| Campo           | Tipo               | Obrigatório | Exemplo                 |
-|-----------------|--------------------|-------------|-------------------------|
-| id              | número             | sim         | 3                       |
-| nome            | texto              | sim         | "Tecnologia"            |
-| descricao       | texto              | sim         | "Categoria..."          |
-| dataCriacao     | data/hora          | sim         | 2025-08-20 14:35        |
-
 ### Post
 | Campo           | Tipo               | Obrigatório | Exemplo                 |
 |-----------------|--------------------|-------------|-------------------------|
 | id              | número             | sim         | 2                       |
 | Usuario_id      | número (fk)        | sim         | 1                       |
-| categoria_id    | número (fk)        | não         | 3                       |
-| titulo          | texto              | sim         | "Dicas para React"      |
+| tipo            | número             | sim         | "0"                     |
 | conteudo        | texto              | sim         | "React é..."            |
 | dataCriacao     | data/hora          | sim         | 2025-08-20 14:35        |
 | dataAtualizacao | data/hora          | sim         | 2025-08-20 14:50        |
@@ -164,6 +156,22 @@ Comentário — resposta vinculada a um post.
 | comentario_id   | numero (fk)        | sim         | 5                       |
 | dataCriacao     | data/hora          | sim         | 2025-08-20 14:35        |
 
+### Seguidores
+| Campo           | Tipo               | Obrigatório | Exemplo                 |
+|-----------------|--------------------|-------------|-------------------------|
+| id              | número             | sim         | 2                       |
+| idSeguindo      | número (fk)        | sim         | 1                       |
+| idSeguidor      | numero (fk)        | sim         | 5                       |
+| dataCriacao     | data/hora          | sim         | 2025-08-20 14:35        |
+
+### Seguindo
+| Campo           | Tipo               | Obrigatório | Exemplo                 |
+|-----------------|--------------------|-------------|-------------------------|
+| id              | número             | sim         | 2                       |
+| idSeguidor      | número (fk)        | sim         | 1                       |
+| idSeguindo      | numero (fk)        | sim         | 5                       |
+| dataCriacao     | data/hora          | sim         | 2025-08-20 14:35        |
+
 ### 9.3 Relações entre entidades
 - Um Usuário tem muitos Posts (1→N).
 
@@ -173,45 +181,42 @@ Comentário — resposta vinculada a um post.
 
 - Um Comentário pertence a um Usuário e a um Post (N→1).
 
-- Um Post pertence a 0 ou muitas Categoria (N→1).
-
 - Um Post pode ter muitas Curtidas (N→1).
 
 - Um Comentário pode ter muitas Curtidas (N→1).
 
 - Um Usuário pode curtir vários posts e comentários (N→1).
 
+- Um Usuário pode seguir vários Usuários.
+
+- Um Usuário pode ser seguido por vários Usuários.
+
 ### 9.4 Modelagem do banco de dados no POSTGRES
 
 ```sql
-CREATE TABLE Usuarios (
+CREATE TABLE IF NOT EXISTS Usuarios (
   id                SERIAL       PRIMARY KEY,
   nome              VARCHAR(255) NOT NULL,
+  usuario           VARCHAR(255) NOT NULL UNIQUE,
   email             VARCHAR(255) NOT NULL UNIQUE,
   senha_hash        VARCHAR(255) NOT NULL,
   papel             SMALLINT     NOT NULL CHECK (papel IN (0,1)),
+  urlPerfilFoto     VARCHAR(255),
   data_criacao      TIMESTAMP    NOT NULL DEFAULT now(),
   data_atualizacao  TIMESTAMP    NOT NULL DEFAULT now()
 );
 
-CREATE TABLE Categorias (
-  id                SERIAL       PRIMARY KEY,
-  nome              VARCHAR(255) NOT NULL UNIQUE,
-  descricao         VARCHAR(255) NOT NULL,
-  data_criacao      TIMESTAMP    NOT NULL DEFAULT now()
-);
 
-CREATE TABLE Posts (
+CREATE TABLE IF NOT EXISTS Posts (
   id                SERIAL       PRIMARY KEY,
   Usuario_id        INTEGER      NOT NULL REFERENCES Usuarios(id) ON DELETE CASCADE,
-  categoria_id      INTEGER      REFERENCES Categoria(id) ON DELETE SET NULL,
-  titulo            VARCHAR(255) NOT NULL,
+  tipo              SMALLINT     NOT NULL CHECK (tipo IN (0,1,2)),
   conteudo          VARCHAR(255) NOT NULL,
   data_criacao      TIMESTAMP    NOT NULL DEFAULT now(),
   data_atualizacao  TIMESTAMP    NOT NULL DEFAULT now()
 );
 
-CREATE TABLE Comentarios (
+CREATE TABLE IF NOT EXISTS Comentarios (
   id                SERIAL       PRIMARY KEY,
   post_id           INTEGER      NOT NULL REFERENCES Posts(id) ON DELETE CASCADE,
   Usuario_id        INTEGER      NOT NULL REFERENCES Usuarios(id) ON DELETE SET NULL,
@@ -220,31 +225,41 @@ CREATE TABLE Comentarios (
   data_atualizacao  TIMESTAMP    NOT NULL DEFAULT now()
 );
 
-CREATE TABLE Like_posts (
+CREATE TABLE IF NOT EXISTS Like_posts (
   id                SERIAL       PRIMARY KEY,
   post_id           INTEGER      NOT NULL UNIQUE REFERENCES Posts(id) ON DELETE CASCADE,
   Usuario_id        INTEGER      NOT NULL UNIQUE REFERENCES Usuarios(id) ON DELETE CASCADE,
   data_criacao      TIMESTAMP    NOT NULL DEFAULT now()
 );
 
-CREATE TABLE Like_comentarios (
+CREATE TABLE IF NOT EXISTS Like_comentarios (
   id                SERIAL       PRIMARY KEY,
   comentario_id     INTEGER      NOT NULL UNIQUE REFERENCES Comentarios(id) ON DELETE CASCADE,
   Usuario_id        INTEGER      NOT NULL UNIQUE REFERENCES Usuarios(id) ON DELETE CASCADE,
   data_criacao      TIMESTAMP    NOT NULL DEFAULT now()
 );
 
-INSERT INTO Usuarios (nome, email, senha_hash, papel) VALUES
-('Usuário', 'user@user.com.br', '123', 0),
-('Admin',   'admin@admin.com.br', '123', 1);
+CREATE TABLE IF NOT EXISTS Seguidores (
+  id                SERIAL      PRIMARY KEY,
+  Seguidor_id       INTEGER     NOT NULL UNIQUE REFERENCES Usuarios(id) ON DELETE CASCADE,
+  Usuario_id        INTEGER     NOT NULL UNIQUE REFERENCES Usuarios(id) ON DELETE CASCADE,
+  data_criacao      TIMESTAMP   NOT NULL DEFAULT now()
+);
 
-INSERT INTO Categorias (nome, descricao) VALUES
-('Tecnologia', 'Categoria sobre...'),
-('Entreterimento', 'descricao');
+CREATE TABLE IF NOT EXISTS Seguindo (
+  id                SERIAL      PRIMARY KEY,
+  Seguindo_id       INTEGER     NOT NULL UNIQUE REFERENCES Usuarios(id) ON DELETE CASCADE,
+  Usuario_id        INTEGER     NOT NULL UNIQUE REFERENCES Usuarios(id) ON DELETE CASCADE,
+  data_criacao      TIMESTAMP   NOT NULL DEFAULT now()
+);
 
-INSERT INTO Posts (Usuario_id, categoria_id, titulo, conteudo) VALUES
-(1, 2, 'Primeiro Post', 'Meu primeiro post'),
-(2, 1, 'Imagem', 'Olha essa imagem');
+INSERT INTO Usuarios (nome, user, email, senha_hash, papel) VALUES
+('Usuário', 'user', 'user@user.com.br', '123', 0),
+('Admin', 'adm',   'admin@admin.com.br', '123', 1);
+
+INSERT INTO Posts (Usuario_id, tipo, conteudo) VALUES
+(1, 0, 'Meu primeiro post'),
+(2, 1, 'Olha essa imagem');
 
 INSERT INTO Comentarios (post_id, usuario_id, conteudo) VALUES
 (1, 2, 'Meuito legal'),
@@ -255,6 +270,14 @@ INSERT INTO Like_posts (post_id, usuario_id) VALUES
 (2, 1);
 
 INSERT INTO Like_comentarios (comentario_id, usuario_id) VALUES
+(1, 2),
+(2, 1);
+
+INSERT INTO Seguidores (Seguidor_id, Usuario_id) VALUES
+(1, 2),
+(2, 1);
+
+INSERT INTO Seguindo (Seguindo_id, Usuario_id) VALUES
 (1, 2),
 (2, 1);
 ```
