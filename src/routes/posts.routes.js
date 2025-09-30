@@ -4,8 +4,6 @@ const router = Router(); // cria o "mini-app" de rotas
 // -----------------------------------------------------------------------------
 // LISTAR — GET /api/posts
 // -----------------------------------------------------------------------------
-// Objetivo: retornar TODOS os posts.
-// Obs.: Ordenamos por id DESC para mostrar os mais recentes primeiro.
 router.get("/", async (_req, res) => {
   try {
     const { rows } = await pool.query(
@@ -19,7 +17,6 @@ router.get("/", async (_req, res) => {
 // -----------------------------------------------------------------------------
 // MOSTRAR — GET /api/posts/:id
 // -----------------------------------------------------------------------------
-// Objetivo: retornar UM post específico pelo id.
 router.get("/:id", async (req, res) => {
   // req.params.id é string → converter p/ número
   const id = Number(req.params.id);
@@ -41,12 +38,6 @@ router.get("/:id", async (req, res) => {
 // -----------------------------------------------------------------------------
 // CRIAR — POST /api/posts
 // -----------------------------------------------------------------------------
-// Objetivo: inserir um novo post.
-// Espera JSON: { Usuarios_id, tipo, conteudo }
-// Regras básicas:
-// - Usuarios_id: inteiro > 0 (FK para Usuarios.id).
-// - tipo: inteiro (0 para texto, 1 para imagem e 3 para vídeo).
-// - conteudo: texto não nulo.
 router.post("/", async (req, res) => {
   // Se req.body vier undefined (cliente não mandou JSON), "?? {}" usa objeto vazio
   const { Usuario_id, tipo, conteudo} = req.body ?? {};
@@ -69,7 +60,7 @@ router.post("/", async (req, res) => {
        RETURNING *`,
       [uid, t, conteudo.trim()]
     );
-    // 201 Created + retornamos o chamado criado (inclui id gerado)
+    // 201 Created + retornamos o post criado (inclui id gerado)
     res.status(201).json(rows[0]);
   } catch (e) {
     // Se a FK (Usuario_id) não existir, o Postgres lança erro 23503
@@ -84,7 +75,6 @@ router.post("/", async (req, res) => {
 // -----------------------------------------------------------------------------
 // SUBSTITUIR — PUT /api/posts/:id
 // -----------------------------------------------------------------------------
-// Objetivo: substituir TODOS os campos do post (representação completa).
 router.put("/:id", async (req, res) => {
   const id = Number(req.params.id);
   const { Usuario_id, tipo, conteudo } = req.body ?? {};
@@ -128,12 +118,6 @@ router.put("/:id", async (req, res) => {
 // -----------------------------------------------------------------------------
 // ATUALIZAR — PATCH /api/posts/:id
 // -----------------------------------------------------------------------------
-// Objetivo: atualizar APENAS os campos enviados (parcial).
-// Regras de validação:
-// - Se enviar Usuarios_id, precisa ser inteiro > 0.
-// - Se enviar texto, precisa ser string não vazia.
-// - Se enviar estado, precisa ser 'a' ou 'f'.
-// - Se não enviar nada, respondemos 400 (não há o que atualizar).
 router.patch("/:id", async (req, res) => {
   const id = Number(req.params.id);
   const { Usuario_id, tipo, conteudo } = req.body ?? {};
@@ -184,7 +168,7 @@ router.patch("/:id", async (req, res) => {
       [uid, novoTipo, novoConteudo, id]
     );
     if (!rows[0]) return res.status(404).json({ erro: "não encontrado" });
-    res.json(rows[0]); // 200 OK - chamado atualizado parcialmente
+    res.json(rows[0]); // 200 OK - post atualizado parcialmente
   } catch (e) {
     if (e?.code === "23503") {
       return res
@@ -197,7 +181,6 @@ router.patch("/:id", async (req, res) => {
 // -----------------------------------------------------------------------------
 // DELETAR — DELETE /api/posts/:id
 // -----------------------------------------------------------------------------
-// Objetivo: remover um post existente. Retorna 204 No Content se der certo.
 router.delete("/:id", async (req, res) => {
   const id = Number(req.params.id);
   if (!Number.isInteger(id) || id <= 0) {
@@ -216,15 +199,3 @@ router.delete("/:id", async (req, res) => {
 });
 
 export default router;
-// -----------------------------------------------------------------------------
-// COMO "MONTAR" ESTE ROUTER NO APP PRINCIPAL (exemplo):
-// -----------------------------------------------------------------------------
-// import express from "express";
-// import chamadosRouter from "./routes/chamados.routes.js";
-//
-// const app = express();
-// app.use(express.json());
-// app.use("/api/chamados", chamadosRouter); // prefixo para todas as rotas acima
-//
-// app.listen(3000, () => console.log("Servidor rodando..."));
-// -----------------------------------------------------------------------------

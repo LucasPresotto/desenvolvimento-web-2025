@@ -49,20 +49,6 @@ app.get("/", (_req, res) => {
     DELETAR:    "DELETE /api/posts/:id",
   });
 });
-// -----------------------------------------------------------------------------
-// MONTAGEM DO ROUTER DE CHAMADOS EM /api/chamados
-// - chamadosRouter é um Router do Express definido em ./routes/chamados.routes.js.
-// - app.use("/api/chamados", chamadosRouter) diz ao Express:
-//     “Para qualquer caminho que COMEÇA com /api/chamados, use as rotas
-//      definidas dentro de chamadosRouter.”
-// - Isso adiciona o prefixo automaticamente, melhorando a organização:
-//     GET    /api/chamados
-//     GET    /api/chamados/:id
-//     POST   /api/chamados
-//     PUT    /api/chamados/:id
-//     PATCH  /api/chamados/:id
-//     DELETE /api/chamados/:id
-// -----------------------------------------------------------------------------
 app.use("/api/posts", postsRouter);
 // -----------------------------------------------------------------------------
 // INICIANDO O SERVIDOR
