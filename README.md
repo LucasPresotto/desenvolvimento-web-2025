@@ -51,7 +51,9 @@ Usuário acessa página de posts.
 
 Usuário cria um post.
 
-Outros usuários comentam no post.
+Outros usuários curtem e comentam no post.
+
+Usuários podem seguir outros usuários.
 
 Usuário pode editar ou remover seus posts/comentários.
 
@@ -93,11 +95,10 @@ Painel do admin (listar/remover posts e comentários)
 
 ### 8.3 Back-end (API/servidor, se existir)
 **Back-end (API):** JavaScript com Express 
-**Banco de dados:** MySQL ou Postgres
+**Banco de dados:** Postgres
 **Deploy do back-end:** Estudar onde irei fazer.
 
 ## 9) Plano de Dados (Dia 0) — somente itens 1–3
-<!-- Defina só o essencial para criar o banco depois. -->
 
 ### 9.1 Entidades
 Usuário — pessoa que usa o sistema (autor de posts/comentários).
@@ -113,10 +114,11 @@ Comentário — resposta vinculada a um post.
 |-----------------|-------------------------------|-------------|--------------------|
 | id              | número                        | sim         | 1                  |
 | nome            | texto                         | sim         | "Ana Souza"        |
-| user            | texto                         | sim         | "ana_souza"        |
+| usuario         | texto                         | sim         | "ana_souza"        |
 | email           | texto                         | sim (único) | "ana@exemplo.com"  |
 | senha_hash      | texto                         | sim         | "$2a$10$..."       |
 | papel           | número (0=usuario, 1=admin)   | sim         | 0                  |
+| url_perfil_foto | texto                         | nao         | "fgdsfsafag"
 | dataCriacao     | data/hora                     | sim         | 2025-08-20 14:30   |
 | dataAtualizacao | data/hora                     | sim         | 2025-08-20 15:10   |
 
@@ -164,13 +166,6 @@ Comentário — resposta vinculada a um post.
 | idSeguidor      | numero (fk)        | sim         | 5                       |
 | dataCriacao     | data/hora          | sim         | 2025-08-20 14:35        |
 
-### Seguindo
-| Campo           | Tipo               | Obrigatório | Exemplo                 |
-|-----------------|--------------------|-------------|-------------------------|
-| id              | número             | sim         | 2                       |
-| idSeguidor      | número (fk)        | sim         | 1                       |
-| idSeguindo      | numero (fk)        | sim         | 5                       |
-| dataCriacao     | data/hora          | sim         | 2025-08-20 14:35        |
 
 ### 9.3 Relações entre entidades
 - Um Usuário tem muitos Posts (1→N).
@@ -201,7 +196,7 @@ CREATE TABLE IF NOT EXISTS Usuarios (
   email             VARCHAR(255) NOT NULL UNIQUE,
   senha_hash        VARCHAR(255) NOT NULL,
   papel             SMALLINT     NOT NULL CHECK (papel IN (0,1)),
-  urlPerfilFoto     VARCHAR(255),
+  url_perfil_foto   VARCHAR(255),
   data_criacao      TIMESTAMP    NOT NULL DEFAULT now(),
   data_atualizacao  TIMESTAMP    NOT NULL DEFAULT now()
 );
@@ -227,57 +222,146 @@ CREATE TABLE IF NOT EXISTS Comentarios (
 
 CREATE TABLE IF NOT EXISTS Like_posts (
   id                SERIAL       PRIMARY KEY,
-  post_id           INTEGER      NOT NULL UNIQUE REFERENCES Posts(id) ON DELETE CASCADE,
-  Usuario_id        INTEGER      NOT NULL UNIQUE REFERENCES Usuarios(id) ON DELETE CASCADE,
-  data_criacao      TIMESTAMP    NOT NULL DEFAULT now()
+  post_id           INTEGER      NOT NULL REFERENCES Posts(id) ON DELETE CASCADE,
+  Usuario_id        INTEGER      NOT NULL REFERENCES Usuarios(id) ON DELETE CASCADE,
+  data_criacao      TIMESTAMP    NOT NULL DEFAULT now(),
+  UNIQUE (post_id, Usuario_id)
 );
 
 CREATE TABLE IF NOT EXISTS Like_comentarios (
   id                SERIAL       PRIMARY KEY,
-  comentario_id     INTEGER      NOT NULL UNIQUE REFERENCES Comentarios(id) ON DELETE CASCADE,
-  Usuario_id        INTEGER      NOT NULL UNIQUE REFERENCES Usuarios(id) ON DELETE CASCADE,
-  data_criacao      TIMESTAMP    NOT NULL DEFAULT now()
+  comentario_id     INTEGER      NOT NULL REFERENCES Comentarios(id) ON DELETE CASCADE,
+  Usuario_id        INTEGER      NOT NULL REFERENCES Usuarios(id) ON DELETE CASCADE,
+  data_criacao      TIMESTAMP    NOT NULL DEFAULT now(),
+  UNIQUE (comentario_id, Usuario_id)
 );
 
 CREATE TABLE IF NOT EXISTS Seguidores (
-  id                SERIAL      PRIMARY KEY,
-  Seguidor_id       INTEGER     NOT NULL UNIQUE REFERENCES Usuarios(id) ON DELETE CASCADE,
-  Usuario_id        INTEGER     NOT NULL UNIQUE REFERENCES Usuarios(id) ON DELETE CASCADE,
-  data_criacao      TIMESTAMP   NOT NULL DEFAULT now()
+  id                SERIAL PRIMARY KEY,
+  seguidor_id       INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+  seguido_id        INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+  data_criacao      TIMESTAMP NOT NULL DEFAULT now(),
+  UNIQUE (seguidor_id, seguido_id),
+  CHECK (seguidor_id <> seguido_id)
 );
 
-CREATE TABLE IF NOT EXISTS Seguindo (
-  id                SERIAL      PRIMARY KEY,
-  Seguindo_id       INTEGER     NOT NULL UNIQUE REFERENCES Usuarios(id) ON DELETE CASCADE,
-  Usuario_id        INTEGER     NOT NULL UNIQUE REFERENCES Usuarios(id) ON DELETE CASCADE,
-  data_criacao      TIMESTAMP   NOT NULL DEFAULT now()
-);
-
-INSERT INTO Usuarios (nome, user, email, senha_hash, papel) VALUES
+INSERT INTO Usuarios (nome, usuario, email, senha_hash, papel) VALUES
 ('Usuário', 'user', 'user@user.com.br', '123', 0),
-('Admin', 'adm',   'admin@admin.com.br', '123', 1);
+('Admin', 'adm',   'admin@admin.com.br', '123', 1),
+('Maria Silva', 'maria', 'maria@email.com', '123', 0, 'https://picsum.photos/200?1'),
+('João Pedro', 'joao', 'joao@email.com', '123', 0, 'https://picsum.photos/200?2'),
+('Ana Clara', 'ana', 'ana@email.com', '123', 0, 'https://picsum.photos/200?3'),
+('Carlos Souza', 'carlos', 'carlos@email.com', '123', 0, 'https://picsum.photos/200?4'),
+('Beatriz Lima', 'bia', 'bia@email.com', '123', 0, 'https://picsum.photos/200?5');
 
 INSERT INTO Posts (Usuario_id, tipo, conteudo) VALUES
 (1, 0, 'Meu primeiro post'),
-(2, 1, 'Olha essa imagem');
+(2, 1, 'Olha essa imagem'),
+(3, 0, 'Primeiro dia no novo emprego!'),
+(4, 1, 'Compartilhando uma foto do pôr do sol 🌅'),
+(5, 2, 'Vídeo engraçado do meu cachorro 🐶'),
+(1, 0, 'Hoje li um livro incrível sobre programação'),
+(2, 1, 'Olha essa arte digital que acabei de fazer 🎨');
 
 INSERT INTO Comentarios (post_id, usuario_id, conteudo) VALUES
 (1, 2, 'Meuito legal'),
-(2, 1, 'Ótimo');
+(2, 1, 'Ótimo'),
+(3, 1, 'Muito fofo esse cachorro!'),
+(3, 2, 'Hahaha, adorei 😂'),
+(4, 3, 'Qual o nome do livro?'),
+(5, 4, 'Ficou top demais, parabéns!'),
+(2, 5, 'Esse pôr do sol é na praia?');
 
 INSERT INTO Like_posts (post_id, usuario_id) VALUES
 (1, 2),
-(2, 1);
+(2, 1),
+(3, 2),
+(3, 5),
+(4, 1),
+(4, 3),
+(5, 4),
+(5, 2);
 
 INSERT INTO Like_comentarios (comentario_id, usuario_id) VALUES
 (1, 2),
-(2, 1);
+(2, 1),
+(3, 2),
+(4, 5),
+(5, 1);
 
 INSERT INTO Seguidores (Seguidor_id, Usuario_id) VALUES
 (1, 2),
-(2, 1);
-
-INSERT INTO Seguindo (Seguindo_id, Usuario_id) VALUES
-(1, 2),
-(2, 1);
+(2, 1),
+(3, 1),
+(4, 2), 
+(5, 3), 
+(2, 5);
 ```
+## 🔧 Como rodar localmente (passo a passo)
+
+### 1) Pré-requisitos
+- **Node.js** instalado (versão LTS recomendada sendo versão 18 ou superior)  
+- **PostgreSQL** rodando localmente (versão 14 ou superior)
+- **Express.js** instalado
+
+### 2) Criar arquivo `.env` na raiz do projeto e ajustar as variáveis
+```env
+#PORTA DO SERVIDOR DO EXPRESS
+PORT=3000
+
+# CONFIGURAÇÃO POSTGRES
+DB_HOST=localhost
+DB_PORT=5432
+DB_USER=postgres
+DB_PASSWORD=senha
+DB_DATABASE=redesocial_api_db
+PG_DATABASE_ADMIN=postgres
+DB_DATABASE_ADMIN_PASSWORD=senha
+
+# CAMINHO PARA O SQL DO BANCO EM POSTGRES
+PSQL_PATH="C:\Program Files\PostgreSQL\17\bin\psql.exe"
+```
+
+### 3) Instalar dependências 
+```bash
+npm install
+```
+
+### 4) Criar o banco de dados
+- Ajuste o caminho para o arquivo psql no .env.  
+- Ajuste usuário/senha/porta conforme o seu Postgres.
+- Execute o seguinte script para criar e popular o banco de dados e depois para iniciar
+
+```bash
+npm run reset-database
+npm run dev   # ou: node server.js / npm start (conforme seu package.json)
+```
+
+### 5) Porta Padrão
+O servidor será executado por padrão na porta 3000. Você pode acessá-lo em http://localhost:3000.
+
+### 6) Variáveis de Ambiente
+O arquivo .env é necessário para configurar a conexão com o banco de dados e a porta do servidor.
+
+| Variável        | Descrição          | Exemplo                 |
+|-----------------|--------------------|-------------------------|
+| PORT              | A porta em que o servidor Express irá rodar. | 3000 |
+| DB_HOST      | O endereço do servidor do banco de dados.	 | localhost         |
+| DB_PORT         | A porta do servidor do banco de dados.	 | 5432          |
+| DB_USER        | O nome de usuário para conectar ao banco.	 | postgres          |
+| DB_PASSWORD     | A senha para o usuário do banco de dados. (Deve ser alterada no .env)	 | senha          |
+| DB_DATABASE | O nome do banco de dados da aplicação. | redesocial_api_db         |
+| DB_DATABASE_ADMIN_PASSWORD | A senha do superusuário do Postgres, usada pelo script de reset. (Deve ser alterada no .env) | senha      |
+| PSQL_PATH | (Opcional) Caminho completo para o executável psql.exe no Windows, caso não esteja no PATH do sistema.	 | C:\...\psql.exe     |
+
+### 7) Endpoints da API
+Abaixo está a tabela com os endpoints disponíveis para o recurso de Posts.
+
+| Método   | Rota             | Descrição               | Respostas (JSON)  |
+|----------|------------------|-------------------------|-------------------|  
+| GET      | /api/posts	      | Lista todos os posts.   |200 OK: [{ "id": 1, "usuario_id": 1, ... }] 500 Internal Server Error: { "erro": "erro interno" } |
+| GET      | /api/posts/:id	  | Mostra um post específico pelo ID. | 200 OK: { "id": 1, "usuario_id": 1, ... } 404 Not Found: { "erro": "não encontrado" } |
+| POST     | /api/posts	      | Cria um novo post. | 201 Created: { "id": 8, ... } 400 Bad Request: { "erro": "Campos obrigatórios..." } |
+| PUT      | /api/posts/:id   | Substitui completamente um post existente. | 200 OK: { "id": 1, ... } (com dados atualizados) 404 Not Found: { "erro": "não encontrado" } |
+| PATCH    | /api/posts/:id   | Atualiza parcialmente um post existente. | 200 OK: { "id": 1, ... } (com dados atualizados) 400 Bad Request: { "erro": "envie ao menos um campo..." } |
+| DELETE   | /api/posts/:id   | Deleta um post pelo ID. | 204 No Content (sem corpo de resposta) 404 Not Found: { "erro": "não encontrado" } |
