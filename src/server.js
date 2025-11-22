@@ -21,18 +21,29 @@
 // -----------------------------------------------------------------------------
 import express from "express";
 import dotenv from "dotenv";
+import cors from "cors";
+import cookieParser from "cookie-parser";
+import { authMiddleware } from "./middlewares/auth.js";
 import postsRouter from "./routes/posts.routes.js";
+import usuariosRouter from "./routes/usuarios.routes.js";
+import comentariosRouter from "./routes/comentarios.routes.js";
+import likesRouter from "./routes/likes.routes.js";
+import seguidoresRouter from "./routes/seguidores.routes.js";
 dotenv.config();
 // ↑ Lê o arquivo .env (se existir) e popula process.env com as chaves definidas.
 //   Importante: chame dotenv.config() antes de acessar qualquer process.env.
 const app = express();
-// -----------------------------------------------------------------------------
-// MIDDLEWARE: interpretar JSON do corpo das requisições
-// - Sem isso, req.body seria undefined quando o cliente envia JSON.
-// - Exemplo: POST /api/chamados com corpo { "Usuarios_id": 1, "texto": "..." }
-//   → req.body vira { Usuarios_id: 1, texto: "..." }.
-// -----------------------------------------------------------------------------
+// Confiança no proxy (necessário para deploy em serviços como Render/Heroku)
+app.set("trust proxy", 1);
+
+// Habilita CORS com credenciais (permite cookies entre domínios)
+app.use(cors({ origin: true, credentials: true }));
+
+// Habilita o Express a ler JSON do corpo das requisições
 app.use(express.json());
+
+// Habilita o Express a ler cookies (necessário para o refresh token)
+app.use(cookieParser());
 // -----------------------------------------------------------------------------
 // ROTA DE BOAS-VINDAS (GET /)
 // - Retorna um “guia rápido” em JSON com os endpoints disponíveis da API.
@@ -40,16 +51,41 @@ app.use(express.json());
 // -----------------------------------------------------------------------------
 app.get("/", (_req, res) => {
   res.json({
-    // POSTS
-    LISTAR:     "GET /api/posts",
-    MOSTRAR:    "GET /api/posts/:id",
-    CRIAR:      "POST /api/posts  BODY: { Usuario_id: number, tipo: number, texto: 'string' }",
-    SUBSTITUIR: "PUT /api/posts/:id  BODY: { Usuario_id: number, tipo: number, texto: 'string' }",
-    ATUALIZAR:  "PATCH /api/posts/:id  BODY: { Usuario_id: number, tipo: number, texto: 'string' }",
-    DELETAR:    "DELETE /api/posts/:id",
+    // USUARIOS (Público)
+    REGISTER: "POST /api/usuarios/register BODY: { nome, usuario, email, senha }",
+    LOGIN:    "POST /api/usuarios/login    BODY: { email, senha }",
+    LOGOUT:   "POST /api/usuarios/logout   (requer cookie)",
+    REFRESH:  "POST /api/usuarios/refresh  (requer cookie)",
+    
+    // POSTS (Protegido)
+    LISTAR_POSTS:    "GET /api/posts",
+    MOSTRAR_POST:    "GET /api/posts/:id",
+    CRIAR_POST:      "POST /api/posts       BODY: { tipo: number, conteudo: 'string' }",
+    SUBSTITUIR_POST: "PUT /api/posts/:id    BODY: { tipo: number, conteudo: 'string' }",
+    ATUALIZAR_POST:  "PATCH /api/posts/:id  BODY: { tipo?: number, conteudo?: 'string' }",
+    DELETAR_POST:    "DELETE /api/posts/:id",
+    
+    // COMENTARIOS (Protegido, exceto GET)
+    LISTAR_COMENTARIOS: "GET /api/posts/:id/comentarios",
+    CRIAR_COMENTARIO:   "POST /api/comentarios      BODY: { post_id: number, conteudo: 'string' }",
+    ATUALIZAR_COMENTARIO: "PUT /api/comentarios/:id   BODY: { conteudo: 'string' }",
+    DELETAR_COMENTARIO: "DELETE /api/comentarios/:id",
+
+    // EXTRAS
+    LIKE_POST:        "POST /api/likes/posts/:id",
+    UNLIKE_POST:      "DELETE /api/likes/posts/:id",
+    SEGUIR:           "POST /api/seguidores/:id",
+    UNFOLLOW:         "DELETE /api/seguidores/:id"
   });
 });
-app.use("/api/posts", postsRouter);
+// Rotas públicas de autenticação
+app.use("/api/usuarios", usuariosRouter);
+
+// Rotas protegidas (exigem 'Authorization: Bearer <token>')
+app.use("/api/posts", authMiddleware, postsRouter);
+app.use("/api/comentarios", authMiddleware, comentariosRouter);
+app.use("/api/likes", authMiddleware, likesRouter);
+app.use("/api/seguidores", authMiddleware, seguidoresRouter);
 // -----------------------------------------------------------------------------
 // INICIANDO O SERVIDOR
 // - process.env.PORT permite definir a porta via ambiente (ex.: PORT=8080).

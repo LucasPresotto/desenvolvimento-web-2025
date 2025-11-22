@@ -1,16 +1,4 @@
-\echo
-
-\encoding UTF8
-
 SET client_encoding = 'UTF8';
-
-\set ON_ERROR_STOP ON
-
-DROP DATABASE IF EXISTS redesocial_api_db;
-
-CREATE DATABASE redesocial_api_db;
-
-\connect redesocial_api_db
 
 CREATE TABLE IF NOT EXISTS Usuarios (
   id                SERIAL       PRIMARY KEY,
@@ -30,6 +18,7 @@ CREATE TABLE IF NOT EXISTS Posts (
   Usuario_id        INTEGER      NOT NULL REFERENCES Usuarios(id) ON DELETE CASCADE,
   tipo              SMALLINT     NOT NULL CHECK (tipo IN (0,1,2)),
   conteudo          VARCHAR(255) NOT NULL,
+  url_arquivo       VARCHAR(255),
   data_criacao      TIMESTAMP    NOT NULL DEFAULT now(),
   data_atualizacao  TIMESTAMP    NOT NULL DEFAULT now()
 );
@@ -68,9 +57,9 @@ CREATE TABLE IF NOT EXISTS Seguidores (
   CHECK (seguidor_id <> seguido_id)
 );
 
-INSERT INTO Usuarios (nome, usuario, email, senha_hash, papel) VALUES
-('Usuário', 'user', 'user@user.com.br', '123', 0),
-('Admin', 'adm',   'admin@admin.com.br', '123', 1),
+INSERT INTO Usuarios (nome, usuario, email, senha_hash, papel, url_perfil_foto) VALUES
+('Usuário', 'user', 'user@user.com.br', '123', 0,'https://picsum.photos/200?1'),
+('Admin', 'adm',   'admin@admin.com.br', '123', 1, 'https://picsum.photos/200?1'),
 ('Maria Silva', 'maria', 'maria@email.com', '123', 0, 'https://picsum.photos/200?1'),
 ('João Pedro', 'joao', 'joao@email.com', '123', 0, 'https://picsum.photos/200?2'),
 ('Ana Clara', 'ana', 'ana@email.com', '123', 0, 'https://picsum.photos/200?3'),
@@ -86,7 +75,7 @@ INSERT INTO Posts (Usuario_id, tipo, conteudo) VALUES
 (1, 0, 'Hoje li um livro incrível sobre programação'),
 (2, 1, 'Olha essa arte digital que acabei de fazer 🎨');
 
-INSERT INTO Comentarios (post_id, usuario_id, conteudo) VALUES
+INSERT INTO Comentarios (post_id, Usuario_id, conteudo) VALUES
 (1, 2, 'Meuito legal'),
 (2, 1, 'Ótimo'),
 (3, 1, 'Muito fofo esse cachorro!'),
@@ -95,7 +84,7 @@ INSERT INTO Comentarios (post_id, usuario_id, conteudo) VALUES
 (5, 4, 'Ficou top demais, parabéns!'),
 (2, 5, 'Esse pôr do sol é na praia?');
 
-INSERT INTO Like_posts (post_id, usuario_id) VALUES
+INSERT INTO Like_posts (post_id, Usuario_id) VALUES
 (1, 2),
 (2, 1),
 (3, 2),
@@ -105,14 +94,14 @@ INSERT INTO Like_posts (post_id, usuario_id) VALUES
 (5, 4),
 (5, 2);
 
-INSERT INTO Like_comentarios (comentario_id, usuario_id) VALUES
+INSERT INTO Like_comentarios (comentario_id, Usuario_id) VALUES
 (1, 2),
 (2, 1),
 (3, 2),
 (4, 5),
 (5, 1);
 
-INSERT INTO Seguidores (Seguidor_id, Usuario_id) VALUES
+INSERT INTO Seguidores (seguidor_id, seguido_id) VALUES
 (1, 2),
 (2, 1),
 (3, 1),
