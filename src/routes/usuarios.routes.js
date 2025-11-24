@@ -161,9 +161,9 @@ router.post("/register", async (req, res) => {
 
         const r = await pool.query(
             `INSERT INTO "Usuarios" ("nome","usuario","email","senha_hash","papel","url_perfil_foto")
-             VALUES ($1,$2,$3,$4,$5.$6)
+             VALUES ($1,$2,$3,$4,$5,$6)
              RETURNING "id","nome","usuario","email","papel","url_perfil_foto"`,
-            [String(nome).trim(), String(email).trim().toLowerCase(), senha_hash, papel]
+            [String(nome).trim(), String(usuario).trim(), String(email).trim().toLowerCase(), senha_hash, papel, url_perfil_foto || null]
         );
         const user = r.rows[0];
 
