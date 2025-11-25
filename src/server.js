@@ -23,6 +23,7 @@ import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
 import cookieParser from "cookie-parser";
+import path from "path";
 import { authMiddleware } from "./middlewares/auth.js";
 import postsRouter from "./routes/posts.routes.js";
 import usuariosRouter from "./routes/usuarios.routes.js";
@@ -44,6 +45,12 @@ app.use(express.json());
 
 // Habilita o Express a ler cookies (necessário para o refresh token)
 app.use(cookieParser());
+
+// CONFIGURAÇÃO PARA SERVIR IMAGENS (ARQUIVOS ESTÁTICOS)
+// Isso permite que URLs como /uploads/imagem.jpg funcionem
+// -----------------------------------------------------------------------------
+app.use("/uploads", express.static(path.resolve("uploads")));
+
 // -----------------------------------------------------------------------------
 // ROTA DE BOAS-VINDAS (GET /)
 // - Retorna um “guia rápido” em JSON com os endpoints disponíveis da API.

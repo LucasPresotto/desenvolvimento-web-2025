@@ -12,7 +12,7 @@ const fileFilter = (req, file, cb) => {
     const tipoPost = req.body.tipo; 
     
     // Validação para FOTO DE PERFIL (se for essa a rota)
-    if (req.originalUrl.includes('/api/usuarios/foto')) {
+    if (req.originalUrl.includes('/api/usuarios/foto') || req.originalUrl.includes('/api/usuarios/register')) {
         if (file.mimetype.startsWith('image/')) {
             cb(null, true); // Aceita imagem
         } else {

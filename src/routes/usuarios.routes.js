@@ -141,15 +141,19 @@ router.post("/refresh", async (req, res) => {
     }
 });
 
-router.post("/register", async (req, res) => {
+router.post("/register", upload.single("foto_perfil"), async (req, res) => {
     // Cadastro simples:
     // 1) valida campos mínimos;
     // 2) gera hash da senha;
     // 3) insere usuário como papel padrão (0);
     // 4) emite access + refresh e grava o refresh em cookie HttpOnly.
-    const { nome, usuario, email, senha, url_perfil_foto } = req.body ?? {};
+    const { nome, usuario, email, senha} = req.body ?? {};
+    const url_perfil_foto = req.file 
+        ? `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}` 
+        : null;
+    console.log("SEGREDO:", process.env.JWT_ACCESS_SECRET);
     if (!nome || !usuario || !email || !senha) {
-        return res.status(400).json({ erro: "nome, email e senha são obrigatórios" });
+        return res.status(400).json({ erro: "nome, usuario, email e senha são obrigatórios" });
     }
     if (String(senha).length < 6) {
         return res.status(400).json({ erro: "senha deve ter pelo menos 6 caracteres" });
@@ -163,7 +167,7 @@ router.post("/register", async (req, res) => {
             `INSERT INTO "Usuarios" ("nome","usuario","email","senha_hash","papel","url_perfil_foto")
              VALUES ($1,$2,$3,$4,$5,$6)
              RETURNING "id","nome","usuario","email","papel","url_perfil_foto"`,
-            [String(nome).trim(), String(usuario).trim(), String(email).trim().toLowerCase(), senha_hash, papel, url_perfil_foto || null]
+            [String(nome).trim(), String(usuario).trim(), String(email).trim().toLowerCase(), senha_hash, papel, url_perfil_foto]
         );
         const user = r.rows[0];
 
@@ -178,6 +182,7 @@ router.post("/register", async (req, res) => {
             user: { id: user.id, nome: user.nome, usuario: user.usuario, email: user.email, papel: user.papel },
         });
     } catch (err) {
+        console.error("ERRO NO REGISTER:", err);
         if (err?.code === "23505") { // UNIQUE violation
              if (err.constraint.includes("email")) {
                 return res.status(409).json({ erro: "email já cadastrado" });
