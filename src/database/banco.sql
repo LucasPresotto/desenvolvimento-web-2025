@@ -5,6 +5,7 @@ CREATE TABLE IF NOT EXISTS "Usuarios" (
   nome              VARCHAR(255) NOT NULL,
   usuario           VARCHAR(255) NOT NULL UNIQUE,
   email             VARCHAR(255) NOT NULL UNIQUE,
+  bio               VARCHAR(255),
   senha_hash        VARCHAR(255) NOT NULL,
   papel             SMALLINT     NOT NULL CHECK (papel IN (0,1)),
   url_perfil_foto   VARCHAR(255),
@@ -48,22 +49,37 @@ CREATE TABLE IF NOT EXISTS "Like_comentarios" (
 );
 
 CREATE TABLE IF NOT EXISTS "Seguidores" (
-  id                SERIAL PRIMARY KEY,
-  seguidor_id       INTEGER NOT NULL REFERENCES "Usuarios"(id) ON DELETE CASCADE,
-  seguido_id        INTEGER NOT NULL REFERENCES "Usuarios"(id) ON DELETE CASCADE,
-  data_criacao      TIMESTAMP NOT NULL DEFAULT now(),
+  id                SERIAL       PRIMARY KEY,
+  seguidor_id       INTEGER      NOT NULL REFERENCES "Usuarios"(id) ON DELETE CASCADE,
+  seguido_id        INTEGER      NOT NULL REFERENCES "Usuarios"(id) ON DELETE CASCADE,
+  data_criacao      TIMESTAMP    NOT NULL DEFAULT now(),
   UNIQUE (seguidor_id, seguido_id),
   CHECK (seguidor_id <> seguido_id)
 );
 
-INSERT INTO "Usuarios" (nome, usuario, email, senha_hash, papel, url_perfil_foto) VALUES
-('Usuário', 'user', 'user@user.com.br', '123', 0,'https://picsum.photos/200?1'),
-('Admin', 'adm',   'admin@admin.com.br', '123', 1, 'https://picsum.photos/200?1'),
-('Maria Silva', 'maria', 'maria@email.com', '123', 0, 'https://picsum.photos/200?1'),
-('João Pedro', 'joao', 'joao@email.com', '123', 0, 'https://picsum.photos/200?2'),
-('Ana Clara', 'ana', 'ana@email.com', '123', 0, 'https://picsum.photos/200?3'),
-('Carlos Souza', 'carlos', 'carlos@email.com', '123', 0, 'https://picsum.photos/200?4'),
-('Beatriz Lima', 'bia', 'bia@email.com', '123', 0, 'https://picsum.photos/200?5');
+CREATE TABLE IF NOT EXISTS "Denuncias" (
+  id                SERIAL      PRIMARY KEY,
+  denunciante_id    INTEGER     NOT NULL REFERENCES "Usuarios"(id) ON DELETE CASCADE,
+  usuario_id_denunciado INTEGER REFERENCES "Usuarios"(id) ON DELETE CASCADE,
+  post_id           INTEGER     REFERENCES "Posts"(id)    ON DELETE CASCADE,
+  comentario_id     INTEGER     REFERENCES "Comentarios"(id) ON DELETE CASCADE,
+  motivo            TEXT        NOT NULL,
+  data_criacao      TIMESTAMP   NOT NULL DEFAULT now(),
+  CONSTRAINT alvo_valido CHECK (
+    (usuario_id_denunciado IS NOT NULL AND post_id IS NULL AND comentario_id IS NULL) OR
+    (usuario_id_denunciado IS NULL AND post_id IS NOT NULL AND comentario_id IS NULL) OR
+    (usuario_id_denunciado IS NULL AND post_id IS NULL AND comentario_id IS NOT NULL)
+  )
+);
+
+INSERT INTO "Usuarios" (nome, usuario, email, senha_hash, papel, url_perfil_foto, bio) VALUES
+('Usuário Padrão', 'user', 'user@user.com.br', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 0,'https://picsum.photos/200?1', 'Apenas um usuário comum.'),
+('Administrador', 'adm',   'admin@admin.com.br', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 1, 'https://picsum.photos/200?2', 'Gerente do sistema wYZe.'),
+('Maria Silva', 'maria', 'maria@email.com', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 0, 'https://picsum.photos/200?3', 'Designer e fotógrafa amadora.'),
+('João Pedro', 'joao', 'joao@email.com', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 0, 'https://picsum.photos/200?4', 'Desenvolvedor Fullstack.'),
+('Ana Clara', 'ana', 'ana@email.com', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 0, 'https://picsum.photos/200?5', 'Amante de livros e café.'),
+('Carlos Souza', 'carlos', 'carlos@email.com', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 0, 'https://picsum.photos/200?6', 'Viajante do mundo.'),
+('Beatriz Lima', 'bia', 'bia@email.com', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 0, 'https://picsum.photos/200?7', 'Estudante de arquitetura.');
 
 INSERT INTO "Posts" ("Usuario_id", tipo, conteudo) VALUES
 (1, 0, 'Meu primeiro post'),

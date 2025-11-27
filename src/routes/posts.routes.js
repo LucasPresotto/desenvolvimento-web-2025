@@ -2,20 +2,57 @@ import { Router } from "express";
 import { pool } from "../database/db.js";
 import upload from "../config/multer.config.js"; // Importa a config do multer
 import { unlink } from 'node:fs/promises'; // Para apagar arquivos em caso de erro
+import { authMiddleware } from "../middlewares/auth.js";
 const router = Router(); // cria o "mini-app" de rotas
 // -----------------------------------------------------------------------------
 // LISTAR — GET /api/posts
 // -----------------------------------------------------------------------------
 router.get("/", async (_req, res) => {
+  const uid = _req.user?.id; // ID do usuário logado (se houver authMiddleware antes ou opcional)
+  const { user_id, only_media, liked_by } = _req.query;
+
+  let filtroWhere = [];
+  let params = [];
+  let paramCount = 1;
+
+  // Filtro 1: Posts de um usuário específico
+  if (user_id) {
+    filtroWhere.push(`p."Usuario_id" = $${paramCount++}`);
+    params.push(user_id);
+  }
+
+  // Filtro 2: Apenas Mídia (Tipo 1=img, 2=video)
+  if (only_media === 'true') {
+    filtroWhere.push(`(p.tipo = 1 OR p.tipo = 2)`);
+  }
+
+  // Filtro 3: Posts que um usuário curtiu
+  if (liked_by) {
+    filtroWhere.push(`EXISTS (SELECT 1 FROM "Like_posts" lp WHERE lp.post_id = p.id AND lp."Usuario_id" = $${paramCount++})`);
+    params.push(liked_by);
+  }
+
+  const whereClause = filtroWhere.length > 0 ? 'WHERE ' + filtroWhere.join(' AND ') : '';
+
   try {
     const { rows } = await pool.query(
-      `SELECT p.*, u.nome as "autor_nome", u.usuario as "autor_usuario", u.url_perfil_foto as "autor_foto"
+      `SELECT 
+        p.*, 
+        u.nome as "autor_nome", 
+        u.usuario as "autor_usuario", 
+        u.url_perfil_foto as "autor_foto",
+        (SELECT COUNT(*)::int FROM "Like_posts" WHERE post_id = p.id) as "total_likes",
+        (SELECT COUNT(*)::int FROM "Comentarios" WHERE post_id = p.id) as "total_comentarios",
+        EXISTS (SELECT 1 FROM "Like_posts" WHERE post_id = p.id AND "Usuario_id" = $${paramCount}) as "curtido_por_mim"
        FROM "Posts" p
        JOIN "Usuarios" u ON p."Usuario_id" = u.id
-       ORDER BY p.id DESC`
+       ${whereClause}
+       ORDER BY p.id DESC`,
+      [...params, uid || 0] // O último parâmetro é para o "curtido_por_mim"
     );
-    res.json(rows); 
-  } catch {
+    res.json(rows);
+  } catch (err) {
+    console.error(err);
     res.status(500).json({ erro: "erro interno" });
   }
 });
@@ -23,7 +60,6 @@ router.get("/", async (_req, res) => {
 // MOSTRAR — GET /api/posts/:id
 // -----------------------------------------------------------------------------
 router.get("/:id", async (req, res) => {
-  // req.params.id é string → converter p/ número
   const id = Number(req.params.id);
   // Validar: precisa ser inteiro e > 0
   if (!Number.isInteger(id) || id <= 0) {
@@ -50,22 +86,30 @@ router.get("/:id", async (req, res) => {
 // -----------------------------------------------------------------------------
 router.get("/:id/comentarios", async (req, res) => {
     const id = Number(req.params.id);
+    const uid = req.user?.id || 0;
     if (!Number.isInteger(id) || id <= 0) {
         return res.status(400).json({ erro: "id de post inválido" });
     }
     try {
         const { rows } = await pool.query(
-          `SELECT c.*, u.nome as "autor_nome", u.usuario as "autor_usuario", u.url_perfil_foto as "autor_foto"
+          `SELECT 
+            c.*, 
+            u.nome as "autor_nome", 
+            u.usuario as "autor_usuario", 
+            u.url_perfil_foto as "autor_foto",
+            (SELECT COUNT(*)::int FROM "Like_comentarios" WHERE comentario_id = c.id) as "total_likes",
+            EXISTS (SELECT 1 FROM "Like_comentarios" WHERE comentario_id = c.id AND "Usuario_id" = $2) as "curtido_por_mim"
            FROM "Comentarios" c
            JOIN "Usuarios" u ON c."Usuario_id" = u.id
            WHERE c.post_id = $1
            ORDER BY c.data_criacao ASC`,
-          [id]
+          [id, uid]
         );
         // Retorna lista vazia se não houver comentários, não um erro
         res.json(rows);
-    } catch {
-        res.status(500).json({ erro: "erro interno" });
+    } catch (err){
+      console.error(err);
+      res.status(500).json({ erro: "erro interno" });
     }
 });
 

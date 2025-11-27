@@ -88,4 +88,21 @@ router.get("/:id/seguindo", async (req, res) => {
     }
 });
 
+// VER QUEM SEGUE O USUÁRIO (SEGUIDORES)
+router.get("/:id/seguidores", async (req, res) => {
+    const id = Number(req.params.id);
+    try {
+        const { rows } = await pool.query(
+            `SELECT u.id, u.nome, u.usuario, u.url_perfil_foto
+             FROM "Seguidores" s
+             JOIN "Usuarios" u ON s.seguidor_id = u.id
+             WHERE s.seguido_id = $1`,
+            [id]
+        );
+        res.json(rows);
+    } catch {
+        res.status(500).json({ erro: "Erro interno" });
+    }
+});
+
 export default router;

@@ -30,6 +30,7 @@ import usuariosRouter from "./routes/usuarios.routes.js";
 import comentariosRouter from "./routes/comentarios.routes.js";
 import likesRouter from "./routes/likes.routes.js";
 import seguidoresRouter from "./routes/seguidores.routes.js";
+import denunciasRouter from "./routes/denuncias.routes.js";
 dotenv.config();
 // ↑ Lê o arquivo .env (se existir) e popula process.env com as chaves definidas.
 //   Importante: chame dotenv.config() antes de acessar qualquer process.env.
@@ -93,6 +94,7 @@ app.use("/api/posts", authMiddleware, postsRouter);
 app.use("/api/comentarios", authMiddleware, comentariosRouter);
 app.use("/api/likes", authMiddleware, likesRouter);
 app.use("/api/seguidores", authMiddleware, seguidoresRouter);
+app.use("/api/denuncias", authMiddleware, denunciasRouter);
 // -----------------------------------------------------------------------------
 // INICIANDO O SERVIDOR
 // - process.env.PORT permite definir a porta via ambiente (ex.: PORT=8080).

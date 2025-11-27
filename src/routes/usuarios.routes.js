@@ -34,7 +34,7 @@ const REFRESH_MAX_AGE = 7 * 24 * 60 * 60 * 1000;  // Max-Age do cookie para alin
 
 function signAccessToken(u) {
     // Assina um access token com dados mínimos para autorização no back (id/papel/nome)
-    return jwt.sign({ sub: u.id, papel: u.papel, nome: u.nome }, JWT_ACCESS_SECRET, {
+    return jwt.sign({ sub: u.id, papel: u.papel, nome: u.nome, usuario: u.usuario, url_perfil_foto: u.url_perfil_foto }, JWT_ACCESS_SECRET, {
         expiresIn: JWT_ACCESS_EXPIRES,
     });
 }
@@ -160,7 +160,7 @@ router.post("/register", upload.single("foto_perfil"), async (req, res) => {
     }
 
     try {
-        const senha_hash = await bcrypt.hash(senha, 12); // custo 12: equilibrado entre segurança e performance
+        const senha_hash = await bcrypt.hash(senha, 12); 
         const papel = 0;
 
         const r = await pool.query(
@@ -196,7 +196,6 @@ router.post("/register", upload.single("foto_perfil"), async (req, res) => {
 });
 
 router.post("/logout", async (req, res) => {
-    // “Logout” stateless: apenas remove o cookie de refresh no cliente
     clearRefreshCookie(res, req);
     return res.status(204).end();
 });
@@ -227,5 +226,131 @@ router.post("/foto", authMiddleware, upload.single("foto_perfil"), async (req, r
         res.status(500).json({ erro: e.message || "erro interno" });
     }
 });
+
+// PATCH /api/usuarios/me - Atualizar dados do próprio perfil (Nome e Bio)
+router.patch("/me", authMiddleware, async (req, res) => {
+    const { nome, bio } = req.body;
+    const uid = req.user.id;
+
+    try {
+        const { rows } = await pool.query(
+            `UPDATE "Usuarios"
+             SET nome = COALESCE($1, nome),
+                 bio = COALESCE($2, bio),
+                 data_atualizacao = now()
+             WHERE id = $3
+             RETURNING id, nome, usuario, email, bio, url_perfil_foto`,
+            [nome, bio, uid]
+        );
+        res.json(rows[0]);
+    } catch (err) {
+        res.status(500).json({ erro: "Erro ao atualizar perfil" });
+    }
+});
+
+// GET /api/usuarios/search?q=termo
+router.get("/search", async (req, res) => {
+    const { q } = req.query;
+    if (!q) return res.json([]);
+
+    try {
+        const { rows } = await pool.query(
+            `SELECT id, nome, usuario, url_perfil_foto 
+             FROM "Usuarios" 
+             WHERE nome ILIKE $1 OR usuario ILIKE $1 
+             LIMIT 10`,
+            [`%${q}%`]
+        );
+        res.json(rows);
+    } catch {
+        res.status(500).json({ erro: "Erro na busca" });
+    }
+});
+
+// GET /api/usuarios/perfil/:id (Dados públicos + contadores)
+router.get("/perfil/:id", async (req, res) => {
+    const id = Number(req.params.id);
+    if (!id) return res.status(400).json({ erro: "ID inválido" });
+
+    try {
+        const { rows } = await pool.query(
+            `SELECT 
+                u.id, u.nome, u.usuario, u.bio, u.url_perfil_foto, u.data_criacao,
+                (SELECT COUNT(*)::int FROM "Seguidores" WHERE seguido_id = u.id) as "total_seguidores",
+                (SELECT COUNT(*)::int FROM "Seguidores" WHERE seguidor_id = u.id) as "total_seguindo"
+             FROM "Usuarios" u
+             WHERE u.id = $1`,
+            [id]
+        );
+        if (!rows[0]) return res.status(404).json({ erro: "Usuário não encontrado" });
+        res.json(rows[0]);
+    } catch {
+        res.status(500).json({ erro: "Erro ao buscar perfil" });
+    }
+});
+
+router.delete("/me", authMiddleware, async (req, res) => {
+    const uid = req.user.id;
+    try {
+        const { rowCount } = await pool.query(
+            `DELETE FROM "Usuarios" WHERE id = $1`,
+            [uid]
+        );
+        
+        if (rowCount === 0) return res.status(404).json({ erro: "Usuário não encontrado" });
+        
+        // Remove o cookie de refresh
+        res.clearCookie("refresh_token", { path: "/api/usuarios" });
+        res.status(204).end();
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ erro: "Erro ao excluir conta" });
+    }
+});
+
+router.delete("/admin/:id", authMiddleware, async (req, res) => {
+    const idAlvo = Number(req.params.id);
+    const papel = req.user.papel; // 1 = Admin
+
+    if (papel !== 1) {
+        return res.status(403).json({ erro: "Acesso negado. Apenas administradores." });
+    }
+
+    try {
+        const { rowCount } = await pool.query(
+            `DELETE FROM "Usuarios" WHERE id = $1`,
+            [idAlvo]
+        );
+
+        if (rowCount === 0) return res.status(404).json({ erro: "Usuário não encontrado" });
+        
+        res.status(204).end();
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ erro: "Erro interno ao excluir usuário" });
+    }
+});
+
+router.get("/fix-admin-password", async (req, res) => {
+    try {
+        // 1. Gera um novo hash válido para a senha "123"
+        const novoHash = await bcrypt.hash("123", 12);
+        
+        // 2. Atualiza o usuário admin no banco
+        const resultado = await pool.query(
+            `UPDATE "Usuarios" 
+             SET senha_hash = $1 
+             WHERE email = 'admin@admin.com.br'`,
+            [novoHash]
+        );
+
+        res.send(`Senha do admin atualizada com sucesso! Linhas afetadas: ${resultado.rowCount}. Agora tente logar com a senha '123'.`);
+    } catch (error) {
+        console.error(error);
+        res.status(500).send("Erro ao atualizar senha: " + error.message);
+    }
+});
+
+//http://localhost:3000/api/usuarios/fix-admin-password
 
 export default router;              // Exporta o roteador para ser montado no servidor principal
