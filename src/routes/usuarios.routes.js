@@ -108,11 +108,6 @@ router.post("/login", async (req, res) => {
 });
 
 router.post("/refresh", async (req, res) => {
-    // Emite novo par de tokens usando o refresh do cookie:
-    // 1) lê cookie HttpOnly;
-    // 2) verifica assinatura/tipo;
-    // 3) checa se o usuário ainda existe;
-    // 4) devolve novo access e rotaciona o refresh no cookie.
     const refresh = req.cookies?.[REFRESH_COOKIE];
     if (!refresh) return res.status(401).json({ erro: "refresh ausente" });
 
@@ -142,11 +137,6 @@ router.post("/refresh", async (req, res) => {
 });
 
 router.post("/register", upload.single("foto_perfil"), async (req, res) => {
-    // Cadastro simples:
-    // 1) valida campos mínimos;
-    // 2) gera hash da senha;
-    // 3) insere usuário como papel padrão (0);
-    // 4) emite access + refresh e grava o refresh em cookie HttpOnly.
     const { nome, usuario, email, senha} = req.body ?? {};
     const url_perfil_foto = req.file 
         ? `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}` 
@@ -331,26 +321,26 @@ router.delete("/admin/:id", authMiddleware, async (req, res) => {
     }
 });
 
-router.get("/fix-admin-password", async (req, res) => {
+router.get("/sugestoes", authMiddleware, async (req, res) => {
+    const uid = req.user.id;
     try {
-        // 1. Gera um novo hash válido para a senha "123"
-        const novoHash = await bcrypt.hash("123", 12);
-        
-        // 2. Atualiza o usuário admin no banco
-        const resultado = await pool.query(
-            `UPDATE "Usuarios" 
-             SET senha_hash = $1 
-             WHERE email = 'admin@admin.com.br'`,
-            [novoHash]
+        const { rows } = await pool.query(
+            `SELECT u.id, u.nome, u.usuario, u.url_perfil_foto
+             FROM "Usuarios" u
+             WHERE u.id != $1 
+             AND u.papel != 1 
+             AND NOT EXISTS (
+                SELECT 1 FROM "Seguidores" s 
+                WHERE s.seguidor_id = $1 AND s.seguido_id = u.id
+             )
+             ORDER BY RANDOM()
+             LIMIT 5`,
+            [uid]
         );
-
-        res.send(`Senha do admin atualizada com sucesso! Linhas afetadas: ${resultado.rowCount}. Agora tente logar com a senha '123'.`);
-    } catch (error) {
-        console.error(error);
-        res.status(500).send("Erro ao atualizar senha: " + error.message);
+        res.json(rows);
+    } catch {
+        res.status(500).json({ erro: "Erro ao buscar sugestões" });
     }
 });
 
-//http://localhost:3000/api/usuarios/fix-admin-password
-
-export default router;              // Exporta o roteador para ser montado no servidor principal
+export default router;             

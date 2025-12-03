@@ -5,7 +5,6 @@ Muitos estudantes e pequenos grupos precisam compartilhar ideias, reflexões e d
 Objetivo inicial: fornecer um espaço simples e seguro para escrever posts e trocar comentários, sem distrações externas.
 
 ## 2) Atores e Decisores (quem usa / quem decide)
-Visitantes (leem posts públicos)
 Usuários cadastrados (escrevem posts e comentários)
 Administrador (mantém moderação dos conteúdos)
 
@@ -23,8 +22,6 @@ Administrador:
 Manter (listar, mostrar, editar, remover) todos os posts.
 
 Manter (listar, mostrar, editar, remover) todos os comentários.
-
-Visitante: Visualizar posts e comentários (somente leitura).
 
 ## 4) Limites e suposições
 Limites: entrega final até o fim da disciplina (ex.: 2025-11-30); rodar no navegador; não usar serviços pagos.
@@ -96,7 +93,7 @@ Painel do admin (listar/remover posts e comentários)
 ### 8.3 Back-end (API/servidor, se existir)
 **Back-end (API):** JavaScript com Express 
 **Banco de dados:** Postgres
-**Deploy do back-end:** Estudar onde irei fazer.
+**Deploy do back-end:** Render.
 
 ## 9) Plano de Dados (Dia 0) — somente itens 1–3
 
@@ -106,6 +103,12 @@ Usuário — pessoa que usa o sistema (autor de posts/comentários).
 Post — texto criado por um usuário.
 
 Comentário — resposta vinculada a um post.
+
+Like - ação de curtir posts ou comentários.
+
+Seguidores - ação de seguir outros usuários.
+
+Denúncias - denuncia posts, comentários ou usuários.
 
 ### 9.2 Campos por entidade
 
@@ -186,14 +189,21 @@ Comentário — resposta vinculada a um post.
 
 - Um Usuário pode ser seguido por vários Usuários.
 
+- Um Usuário pode denunciar vários posts.
+
+- Um Uusário pode denunciar vários comentários.
+
+- Um Usuário pode denunciar vários outros Usuários.
+
 ### 9.4 Modelagem do banco de dados no POSTGRES
 
 ```sql
-CREATE TABLE IF NOT EXISTS Usuarios (
+CREATE TABLE IF NOT EXISTS "Usuarios" (
   id                SERIAL       PRIMARY KEY,
   nome              VARCHAR(255) NOT NULL,
   usuario           VARCHAR(255) NOT NULL UNIQUE,
   email             VARCHAR(255) NOT NULL UNIQUE,
+  bio               VARCHAR(255),
   senha_hash        VARCHAR(255) NOT NULL,
   papel             SMALLINT     NOT NULL CHECK (papel IN (0,1)),
   url_perfil_foto   VARCHAR(255),
@@ -201,101 +211,163 @@ CREATE TABLE IF NOT EXISTS Usuarios (
   data_atualizacao  TIMESTAMP    NOT NULL DEFAULT now()
 );
 
-
-CREATE TABLE IF NOT EXISTS Posts (
+CREATE TABLE IF NOT EXISTS "Posts" (
   id                SERIAL       PRIMARY KEY,
-  Usuario_id        INTEGER      NOT NULL REFERENCES Usuarios(id) ON DELETE CASCADE,
+  "Usuario_id"      INTEGER      NOT NULL REFERENCES "Usuarios"(id) ON DELETE CASCADE,
   tipo              SMALLINT     NOT NULL CHECK (tipo IN (0,1,2)),
   conteudo          VARCHAR(255) NOT NULL,
+  url_arquivo       VARCHAR(255),
   data_criacao      TIMESTAMP    NOT NULL DEFAULT now(),
   data_atualizacao  TIMESTAMP    NOT NULL DEFAULT now()
 );
 
-CREATE TABLE IF NOT EXISTS Comentarios (
+CREATE TABLE IF NOT EXISTS "Comentarios" (
   id                SERIAL       PRIMARY KEY,
-  post_id           INTEGER      NOT NULL REFERENCES Posts(id) ON DELETE CASCADE,
-  Usuario_id        INTEGER      NOT NULL REFERENCES Usuarios(id) ON DELETE SET NULL,
+  post_id           INTEGER      NOT NULL REFERENCES "Posts"(id) ON DELETE CASCADE,
+  "Usuario_id"      INTEGER      NOT NULL REFERENCES "Usuarios"(id) ON DELETE SET NULL,
   conteudo          VARCHAR(255) NOT NULL,
   data_criacao      TIMESTAMP    NOT NULL DEFAULT now(),
   data_atualizacao  TIMESTAMP    NOT NULL DEFAULT now()
 );
 
-CREATE TABLE IF NOT EXISTS Like_posts (
+CREATE TABLE IF NOT EXISTS "Like_posts" (
   id                SERIAL       PRIMARY KEY,
-  post_id           INTEGER      NOT NULL REFERENCES Posts(id) ON DELETE CASCADE,
-  Usuario_id        INTEGER      NOT NULL REFERENCES Usuarios(id) ON DELETE CASCADE,
+  post_id           INTEGER      NOT NULL REFERENCES "Posts"(id) ON DELETE CASCADE,
+  "Usuario_id"      INTEGER      NOT NULL REFERENCES "Usuarios"(id) ON DELETE CASCADE,
   data_criacao      TIMESTAMP    NOT NULL DEFAULT now(),
-  UNIQUE (post_id, Usuario_id)
+  UNIQUE (post_id, "Usuario_id")
 );
 
-CREATE TABLE IF NOT EXISTS Like_comentarios (
+CREATE TABLE IF NOT EXISTS "Like_comentarios" (
   id                SERIAL       PRIMARY KEY,
-  comentario_id     INTEGER      NOT NULL REFERENCES Comentarios(id) ON DELETE CASCADE,
-  Usuario_id        INTEGER      NOT NULL REFERENCES Usuarios(id) ON DELETE CASCADE,
+  comentario_id     INTEGER      NOT NULL REFERENCES "Comentarios"(id) ON DELETE CASCADE,
+  "Usuario_id"      INTEGER      NOT NULL REFERENCES "Usuarios"(id) ON DELETE CASCADE,
   data_criacao      TIMESTAMP    NOT NULL DEFAULT now(),
-  UNIQUE (comentario_id, Usuario_id)
+  UNIQUE (comentario_id, "Usuario_id")
 );
 
-CREATE TABLE IF NOT EXISTS Seguidores (
-  id                SERIAL PRIMARY KEY,
-  seguidor_id       INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
-  seguido_id        INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
-  data_criacao      TIMESTAMP NOT NULL DEFAULT now(),
+CREATE TABLE IF NOT EXISTS "Seguidores" (
+  id                SERIAL       PRIMARY KEY,
+  seguidor_id       INTEGER      NOT NULL REFERENCES "Usuarios"(id) ON DELETE CASCADE,
+  seguido_id        INTEGER      NOT NULL REFERENCES "Usuarios"(id) ON DELETE CASCADE,
+  data_criacao      TIMESTAMP    NOT NULL DEFAULT now(),
   UNIQUE (seguidor_id, seguido_id),
   CHECK (seguidor_id <> seguido_id)
 );
 
-INSERT INTO Usuarios (nome, usuario, email, senha_hash, papel) VALUES
-('Usuário', 'user', 'user@user.com.br', '123', 0),
-('Admin', 'adm',   'admin@admin.com.br', '123', 1),
-('Maria Silva', 'maria', 'maria@email.com', '123', 0, 'https://picsum.photos/200?1'),
-('João Pedro', 'joao', 'joao@email.com', '123', 0, 'https://picsum.photos/200?2'),
-('Ana Clara', 'ana', 'ana@email.com', '123', 0, 'https://picsum.photos/200?3'),
-('Carlos Souza', 'carlos', 'carlos@email.com', '123', 0, 'https://picsum.photos/200?4'),
-('Beatriz Lima', 'bia', 'bia@email.com', '123', 0, 'https://picsum.photos/200?5');
+CREATE TABLE IF NOT EXISTS "Denuncias" (
+  id                SERIAL      PRIMARY KEY,
+  denunciante_id    INTEGER     NOT NULL REFERENCES "Usuarios"(id) ON DELETE CASCADE,
+  usuario_id_denunciado INTEGER REFERENCES "Usuarios"(id) ON DELETE CASCADE,
+  post_id           INTEGER     REFERENCES "Posts"(id)    ON DELETE CASCADE,
+  comentario_id     INTEGER     REFERENCES "Comentarios"(id) ON DELETE CASCADE,
+  motivo            TEXT        NOT NULL,
+  data_criacao      TIMESTAMP   NOT NULL DEFAULT now(),
+  CONSTRAINT alvo_valido CHECK (
+    (usuario_id_denunciado IS NOT NULL AND post_id IS NULL AND comentario_id IS NULL) OR
+    (usuario_id_denunciado IS NULL AND post_id IS NOT NULL AND comentario_id IS NULL) OR
+    (usuario_id_denunciado IS NULL AND post_id IS NULL AND comentario_id IS NOT NULL)
+  )
+);
 
-INSERT INTO Posts (Usuario_id, tipo, conteudo) VALUES
+INSERT INTO "Usuarios" (nome, usuario, email, senha_hash, papel, url_perfil_foto, bio) VALUES
+('Usuário Padrão', 'user', 'user@user.com.br', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 0,'https://picsum.photos/200?1', 'Apenas um usuário comum.'),
+('Administrador', 'adm',   'admin@admin.com.br', '$2b$12$betIdHxSj73FmjmGGN6z.Oj9yzKXzA7/Bv/rPXjVcFyTS/c9VOXza', 1, 'https://picsum.photos/200?2', 'Gerente do sistema wYZe.'),
+('Maria Silva', 'maria', 'maria@email.com', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 0, 'https://picsum.photos/200?3', 'Designer e fotógrafa amadora.'),
+('João Pedro', 'joao', 'joao@email.com', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 0, 'https://picsum.photos/200?4', 'Desenvolvedor Fullstack.'),
+('Ana Clara', 'ana', 'ana@email.com', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 0, 'https://picsum.photos/200?5', 'Amante de livros e café.'),
+('Carlos Souza', 'carlos', 'carlos@email.com', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 0, 'https://picsum.photos/200?6', 'Viajante do mundo.'),
+('Beatriz Lima', 'bia', 'bia@email.com', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 0, 'https://picsum.photos/200?7', 'Estudante de arquitetura.'),
+('Lucas Ferreira', 'lucasf', 'lucasf@email.com', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 0, 'https://picsum.photos/200?8', 'Apaixonado por tecnologia e música.'),
+('Julia Mendes', 'juliamm', 'julia@email.com', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 0, 'https://picsum.photos/200?9', 'Amante de natureza e trilhas.'),
+('Ricardo Alves', 'ricardo', 'ricardo@email.com', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 0, 'https://picsum.photos/200?10', 'Designer UX/UI.'),
+('Fernanda Rocha', 'fernanda', 'ferrocha@email.com', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 0, 'https://picsum.photos/200?11', 'Nutricionista e criadora de conteúdo.'),
+('Paulo Henrique', 'paulo', 'paulo@email.com', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 0, 'https://picsum.photos/200?12', 'Gamedev e streamer nas horas vagas.'),
+('Sara Oliveira', 'saraol', 'sara@email.com', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 0, 'https://picsum.photos/200?13', 'Professora e apaixonada por livros.'),
+('Thiago Ramos', 'thiramos', 'thiago@email.com', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 0, 'https://picsum.photos/200?14', 'Futuro cientista de dados.');
+
+INSERT INTO "Posts" ("Usuario_id", tipo, conteudo) VALUES
 (1, 0, 'Meu primeiro post'),
 (2, 1, 'Olha essa imagem'),
 (3, 0, 'Primeiro dia no novo emprego!'),
 (4, 1, 'Compartilhando uma foto do pôr do sol 🌅'),
 (5, 2, 'Vídeo engraçado do meu cachorro 🐶'),
 (1, 0, 'Hoje li um livro incrível sobre programação'),
-(2, 1, 'Olha essa arte digital que acabei de fazer 🎨');
+(2, 1, 'Olha essa arte digital que acabei de fazer 🎨'),
+(8, 0, 'Hoje comecei um novo projeto em Node.js!', NULL),
+(9, 1, 'Foto da trilha de hoje 🌄', 'https://picsum.photos/500?1'),
+(10, 0, 'Novo protótipo de UI finalizado!', NULL),
+(11, 2, 'Vídeo rápido sobre alimentação saudável 🍎', 'https://videos.com/saude1'),
+(12, 0, 'Zerei um jogo novo ontem! 🔥', NULL),
+(13, 1, 'Minha estante de livros nova 📚', 'https://picsum.photos/500?2'),
+(14, 0, 'Treinando modelos de Machine Learning hoje...', NULL),
+(8, 1, 'Olhem essa paisagem incrível!', 'https://picsum.photos/500?3'),
+(12, 2, 'Clipes das lives de ontem 😎', 'https://videos.com/liveclips'),
+(9, 0, 'Hoje aprendi algo novo sobre fotografia!', NULL);
 
-INSERT INTO Comentarios (post_id, usuario_id, conteudo) VALUES
+INSERT INTO "Comentarios" (post_id, "Usuario_id", conteudo) VALUES
 (1, 2, 'Meuito legal'),
 (2, 1, 'Ótimo'),
 (3, 1, 'Muito fofo esse cachorro!'),
 (3, 2, 'Hahaha, adorei 😂'),
 (4, 3, 'Qual o nome do livro?'),
 (5, 4, 'Ficou top demais, parabéns!'),
-(2, 5, 'Esse pôr do sol é na praia?');
+(2, 5, 'Esse pôr do sol é na praia?'),
+(8, 9, 'Boa sorte no projeto!'),
+(9, 8, 'Que lugar lindo!'),
+(10, 11, 'Ficou muito bom!'),
+(11, 13, 'Conteúdo excelente, parabéns!'),
+(12, 14, 'Qual jogo?'),
+(13, 10, 'Sua estante está incrível!'),
+(14, 8, 'Quais modelos você está treinando?'),
+(9, 12, 'Quero visitar esse lugar também!'),
+(10, 14, 'Qual ferramenta usou no protótipo?'),
+(11, 9, 'Vou testar essa receita!');
 
-INSERT INTO Like_posts (post_id, usuario_id) VALUES
-(1, 2),
-(2, 1),
-(3, 2),
-(3, 5),
-(4, 1),
-(4, 3),
-(5, 4),
-(5, 2);
+INSERT INTO "Like_posts" (post_id, "Usuario_id") VALUES
+(1, 2), (2, 1), (3, 2), (3, 5), (4, 1), (4, 3), (5, 4), (5, 2), (8, 10), (8, 11),
+(9, 12), (9, 14), (9, 8),
+(10, 13), (10, 9),
+(11, 8), (11, 12), (11, 14),
+(12, 9),
+(13, 8), (13, 12),
+(14, 10), (14, 11), (14, 13);
 
-INSERT INTO Like_comentarios (comentario_id, usuario_id) VALUES
-(1, 2),
-(2, 1),
-(3, 2),
-(4, 5),
-(5, 1);
+INSERT INTO "Like_comentarios" (comentario_id, "Usuario_id") VALUES
+(1, 2), (2, 1), (3, 2), (4, 5), (5, 1), (8, 12),
+(9, 11),
+(10, 14),
+(11, 9),
+(12, 10),
+(13, 13),
+(14, 12),
+(15, 8),
+(16, 14),
+(17, 11);
 
-INSERT INTO Seguidores (Seguidor_id, Usuario_id) VALUES
-(1, 2),
-(2, 1),
-(3, 1),
-(4, 2), 
-(5, 3), 
-(2, 5);
+INSERT INTO "Seguidores" (seguidor_id, seguido_id) VALUES
+(1, 2), (2, 1), (3, 1), (4, 2), (5, 3), (2, 5), (8, 1), (8, 2), (8, 10),
+(9, 3), (9, 8),
+(10, 4), (10, 13),
+(11, 5),
+(12, 14), (12, 9),
+(13, 8), (13, 6),
+(14, 1), (14, 12), (14, 9);
+
+INSERT INTO "Denuncias" (denunciante_id, usuario_id_denunciado, motivo) VALUES
+(8, 12, 'Comportamento inadequado no chat.'),
+(9, 3, 'Publicação ofensiva.'),
+(10, 5, 'Spam recorrente.'),
+(11, 2, 'Comentário desrespeitoso.'),
+(13, 14, 'Atividade suspeita detectada.');
+
+INSERT INTO "Denuncias" (denunciante_id, post_id, motivo) VALUES
+(12, 9, 'Conteúdo enganoso.'),
+(14, 10, 'Imagem imprópria.');
+
+INSERT INTO "Denuncias" (denunciante_id, comentario_id, motivo) VALUES
+(9, 14, 'Comentário tóxico.'),
+(8, 16, 'Resposta agressiva.');
 ```
 ## 🔧 Como rodar localmente (passo a passo)
 

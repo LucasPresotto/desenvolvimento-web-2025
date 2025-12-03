@@ -3,7 +3,6 @@ import { pool } from "../database/db.js";
 
 const router = Router();
 
-// CRIAR DENÚNCIA (Qualquer usuário logado)
 router.post("/", async (req, res) => {
     const { post_id, comentario_id, usuario_id, motivo } = req.body;
     const denunciante_id = req.user.id;
@@ -23,12 +22,10 @@ router.post("/", async (req, res) => {
     }
 });
 
-// LISTAR DENÚNCIAS (Apenas Admin)
 router.get("/", async (req, res) => {
     if (req.user.papel !== 1) return res.status(403).json({ erro: "Sem permissão." });
 
     try {
-        // Busca denúncias e faz JOIN para trazer detalhes do alvo
         const { rows } = await pool.query(`
             SELECT 
                 d.id, d.motivo, d.data_criacao,
@@ -58,7 +55,6 @@ router.get("/", async (req, res) => {
     }
 });
 
-// DESCARTAR DENÚNCIA (Apenas Admin - remove apenas o registro da denúncia, mantém o conteúdo)
 router.delete("/:id", async (req, res) => {
     if (req.user.papel !== 1) return res.status(403).json({ erro: "Sem permissão." });
     const id = Number(req.params.id);

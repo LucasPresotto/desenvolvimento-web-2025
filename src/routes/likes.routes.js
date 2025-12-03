@@ -3,9 +3,6 @@ import { pool } from "../database/db.js";
 
 const router = Router();
 
-// -----------------------------------------------------------------------------
-// CURTIR UM POST — POST /api/likes/posts/:id
-// -----------------------------------------------------------------------------
 router.post("/posts/:id", async (req, res) => {
     const post_id = Number(req.params.id);
     const usuario_id = req.user?.id; // ID do usuário logado
@@ -15,8 +12,6 @@ router.post("/posts/:id", async (req, res) => {
     }
 
     try {
-        // Tenta inserir o like. Se já existir (violação de UNIQUE), o Postgres retorna erro.
-        // 'ON CONFLICT DO NOTHING' é uma opção, mas vamos tratar o erro para dar feedback.
         const { rowCount } = await pool.query(
             `INSERT INTO "Like_posts" ("post_id", "Usuario_id")
              VALUES ($1, $2)
@@ -37,9 +32,6 @@ router.post("/posts/:id", async (req, res) => {
     }
 });
 
-// -----------------------------------------------------------------------------
-// REMOVER LIKE DE UM POST — DELETE /api/likes/posts/:id
-// -----------------------------------------------------------------------------
 router.delete("/posts/:id", async (req, res) => {
     const post_id = Number(req.params.id);
     const usuario_id = req.user?.id;
@@ -65,9 +57,6 @@ router.delete("/posts/:id", async (req, res) => {
     }
 });
 
-// -----------------------------------------------------------------------------
-// CURTIR UM COMENTÁRIO — POST /api/likes/comentarios/:id
-// -----------------------------------------------------------------------------
 router.post("/comentarios/:id", async (req, res) => {
     const comentario_id = Number(req.params.id);
     const usuario_id = req.user?.id;
@@ -97,9 +86,6 @@ router.post("/comentarios/:id", async (req, res) => {
     }
 });
 
-// -----------------------------------------------------------------------------
-// REMOVER LIKE DE UM COMENTÁRIO — DELETE /api/likes/comentarios/:id
-// -----------------------------------------------------------------------------
 router.delete("/comentarios/:id", async (req, res) => {
     const comentario_id = Number(req.params.id);
     const usuario_id = req.user?.id;

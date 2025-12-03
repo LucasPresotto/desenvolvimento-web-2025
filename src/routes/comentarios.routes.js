@@ -1,18 +1,11 @@
-// src/routes/comentarios.routes.js
 import { Router } from "express";
 import { pool } from "../database/db.js";
 
-const router = Router(); // cria o "mini-app" de rotas
-
-// -----------------------------------------------------------------------------
-// CRIAR — POST /api/comentarios
-// (Listar/GET é feito em posts.routes.js)
-// -----------------------------------------------------------------------------
+const router = Router(); 
 router.post("/", async (req, res) => {
   const { post_id, conteudo } = req.body ?? {};
-  const uid = req.user?.id; // ID do usuário logado (vem do authMiddleware)
+  const uid = req.user?.id; 
 
-  // Validações
   const pid = Number(post_id);
   const temPidValido = Number.isInteger(pid) && pid > 0;
   const temConteudoValido = typeof conteudo === "string" && conteudo.trim() !== "";
@@ -32,16 +25,13 @@ router.post("/", async (req, res) => {
     );
     res.status(201).json(rows[0]);
   } catch (e) {
-    if (e?.code === "23503") { // Foreign Key violation
+    if (e?.code === "23503") { 
       return res.status(400).json({ erro: "post_id ou Usuario_id não existe" });
     }
     res.status(500).json({ erro: "erro interno" });
   }
 });
 
-// -----------------------------------------------------------------------------
-// SUBSTITUIR — PUT /api/comentarios/:id
-// -----------------------------------------------------------------------------
 router.put("/:id", async (req, res) => {
   const id = Number(req.params.id);
   const { conteudo } = req.body ?? {};
@@ -72,9 +62,6 @@ router.put("/:id", async (req, res) => {
   }
 });
 
-// -----------------------------------------------------------------------------
-// ATUALIZAR — PATCH /api/comentarios/:id
-// -----------------------------------------------------------------------------
 router.patch("/:id", async (req, res) => {
     const id = Number(req.params.id);
     const { conteudo } = req.body ?? {};
@@ -108,9 +95,6 @@ router.patch("/:id", async (req, res) => {
     }
 });
 
-// -----------------------------------------------------------------------------
-// DELETAR — DELETE /api/comentarios/:id
-// -----------------------------------------------------------------------------
 router.delete("/:id", async (req, res) => {
   const id = Number(req.params.id);
   const uid = req.user?.id;

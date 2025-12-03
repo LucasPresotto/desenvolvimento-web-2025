@@ -3,13 +3,9 @@ import { pool } from "../database/db.js";
 
 const router = Router();
 
-// -----------------------------------------------------------------------------
-// SEGUIR UM USUÁRIO — POST /api/seguidores/:id
-// (:id é o ID do usuário que eu quero seguir)
-// -----------------------------------------------------------------------------
 router.post("/:id", async (req, res) => {
     const seguido_id = Number(req.params.id);
-    const seguidor_id = req.user?.id; // Eu (logado)
+    const seguidor_id = req.user?.id; 
 
     if (!Number.isInteger(seguido_id) || seguido_id <= 0) {
         return res.status(400).json({ erro: "ID de usuário inválido" });
@@ -40,9 +36,6 @@ router.post("/:id", async (req, res) => {
     }
 });
 
-// -----------------------------------------------------------------------------
-// DEIXAR DE SEGUIR — DELETE /api/seguidores/:id
-// -----------------------------------------------------------------------------
 router.delete("/:id", async (req, res) => {
     const seguido_id = Number(req.params.id);
     const seguidor_id = req.user?.id;
@@ -68,19 +61,17 @@ router.delete("/:id", async (req, res) => {
     }
 });
 
-// -----------------------------------------------------------------------------
-// VER QUEM O USUÁRIO SEGUE — GET /api/seguidores/:id/seguindo
-// (Opcional: permite ver a lista de quem um usuário segue)
-// -----------------------------------------------------------------------------
 router.get("/:id/seguindo", async (req, res) => {
     const id = Number(req.params.id);
+    const eu = req.user?.id || 0;
     try {
         const { rows } = await pool.query(
-            `SELECT u.id, u.nome, u.usuario, u.url_perfil_foto
+            `SELECT u.id, u.nome, u.usuario, u.url_perfil_foto,
+             EXISTS(SELECT 1 FROM "Seguidores" s2 WHERE s2.seguidor_id = $2 AND s2.seguido_id = u.id) as "seguido_por_mim"
              FROM "Seguidores" s
              JOIN "Usuarios" u ON s.seguido_id = u.id
              WHERE s.seguidor_id = $1`,
-            [id]
+            [id, eu]
         );
         res.json(rows);
     } catch {
@@ -88,16 +79,17 @@ router.get("/:id/seguindo", async (req, res) => {
     }
 });
 
-// VER QUEM SEGUE O USUÁRIO (SEGUIDORES)
 router.get("/:id/seguidores", async (req, res) => {
     const id = Number(req.params.id);
+    const eu = req.user?.id || 0;
     try {
         const { rows } = await pool.query(
-            `SELECT u.id, u.nome, u.usuario, u.url_perfil_foto
+            `SELECT u.id, u.nome, u.usuario, u.url_perfil_foto,
+             EXISTS(SELECT 1 FROM "Seguidores" s2 WHERE s2.seguidor_id = $2 AND s2.seguido_id = u.id) as "seguido_por_mim"
              FROM "Seguidores" s
              JOIN "Usuarios" u ON s.seguidor_id = u.id
              WHERE s.seguido_id = $1`,
-            [id]
+            [id, eu]
         );
         res.json(rows);
     } catch {
