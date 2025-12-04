@@ -47,6 +47,11 @@ app.use(express.json());
 // Habilita o Express a ler cookies (necessário para o refresh token)
 app.use(cookieParser());
 
+const allowedOrigins = [
+    "http://localhost:5173",
+    "https://LucasPresotto.github.io"
+];
+
 // CONFIGURAÇÃO PARA SERVIR IMAGENS (ARQUIVOS ESTÁTICOS)
 // Isso permite que URLs como /uploads/imagem.jpg funcionem
 // -----------------------------------------------------------------------------
