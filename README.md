@@ -79,6 +79,24 @@ Criar comentário (campo embaixo do post)
 
 Painel do admin (listar/remover posts e comentários)
 
+![Esboço tela](imgs/esboco_wyze.png)
+
+Diagrama de contexto
+
+![Diagrama de contexto](imgs/diagrama_contexto.png)
+
+Diagrama de Conteiner
+
+![Diagrama de conteiner](imgs/diagrama_conteiner.png)
+
+Diagrama de ERD
+
+![Diagrama ERD](imgs/diagrama_erd.png)
+
+Diagrama de Sequencia
+
+![Diagrama de sequencia](imgs/diagrama_sequencia.png)
+
 ## 8) Tecnologias
 
 ### 8.1 Navegador
