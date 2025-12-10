@@ -184,7 +184,7 @@ router.put("/:id", async (req, res) => {
   }
   const temConteudoValido = typeof conteudo === "string" && conteudo.trim() !== "";
   const temTipoValido = Number.isInteger(tipo) && (tipo == 0 || tipo == 1 || tipo == 2);
-  if (!temUidValido || !temConteudoValido || !temTipoValido) {
+  if (!temConteudoValido || !temTipoValido) {
     return res.status(400).json({
       erro:
         "Para PUT, envie todos os campos: Usuario_id (inteiro>0), tipo (interio - 0,1 ou 2) texto (string)",

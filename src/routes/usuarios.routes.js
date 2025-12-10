@@ -15,9 +15,24 @@ import { pool } from "../database/db.js"; // Pool do Postgres para consultas ao 
 import upload from "../config/multer.config.js";
 import { authMiddleware } from "../middlewares/auth.js";
 import { unlink } from 'node:fs/promises';
+import path from "path";
 
 dotenv.config();                          // Inicializa dotenv (deixa segredos acessíveis via process.env)
 const router = Router();                  // Cria um roteador isolado para montar em /api/usuarios (por exemplo)
+
+const uploadDir = path.resolve("uploads");
+
+async function removerArquivoPorUrl(urlArquivo) {
+    if (!urlArquivo) return;
+    try {
+        const nomeArquivo = urlArquivo.split('/').pop();
+        const caminhoArquivo = path.join(uploadDir, nomeArquivo);
+        await unlink(caminhoArquivo);
+        console.log(`Foto antiga removida: ${caminhoArquivo}`);
+    } catch (err) {
+        console.warn(`Erro ao remover foto antiga (pode já não existir): ${err.message}`);
+    }
+}
 
 const {
     JWT_ACCESS_SECRET,                      // Segredo para verificar/assinar o access token
@@ -199,6 +214,12 @@ router.post("/foto", authMiddleware, upload.single("foto_perfil"), async (req, r
     const url_perfil_foto = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
     try {
         // (Opcional: buscar e deletar a foto de perfil antiga do disco)
+        const { rows: oldRows } = await pool.query(
+            `SELECT url_perfil_foto FROM "Usuarios" WHERE id = $1`,
+            [uid]
+        );
+        const oldUrl = oldRows[0]?.url_perfil_foto;
+
         const { rows } = await pool.query(
             `UPDATE "Usuarios"
              SET "url_perfil_foto" = $1, "data_atualizacao" = now()
@@ -209,6 +230,10 @@ router.post("/foto", authMiddleware, upload.single("foto_perfil"), async (req, r
         if (!rows[0]) {
             if (req.file?.path) await unlink(req.file.path);
             return res.status(404).json({ erro: "Usuário não encontrado" });
+        }
+
+        if (oldUrl) {
+            await removerArquivoPorUrl(oldUrl);
         }
         res.json(rows[0]);
     } catch (e) {

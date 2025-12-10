@@ -5,65 +5,49 @@ Muitos estudantes e pequenos grupos precisam compartilhar ideias, reflexões e d
 Objetivo inicial: fornecer um espaço simples e seguro para escrever posts e trocar comentários, sem distrações externas.
 
 ## 2) Atores e Decisores (quem usa / quem decide)
-Usuários cadastrados (escrevem posts e comentários)
-Administrador (mantém moderação dos conteúdos)
+**Usuários cadastrados:** escrevem posts, comentários, curtem e seguem outros usuários.
+**Administrador:** mantém moderação dos conteúdos (pode excluir posts/comentários e banir usuários).
 
 ## 3) Casos de uso (de forma simples)
-Todos: Registrar, logar/deslogar no sistema; Manter dados cadastrais.
+**Todos:** Registrar, logar/deslogar no sistema; Manter dados cadastrais.
 
-Usuário logado:
+**Usuário logado:**
+    Manter (inserir, mostrar, editar, remover) seus próprios posts.
+    Manter (inserir, mostrar, editar, remover) seus comentários.
+    Interagir (curtir posts/comentários, seguir usuários).
 
-Manter (inserir, mostrar, editar, remover) seus próprios posts.
-
-Manter (inserir, mostrar, editar, remover) seus comentários.
-
-Administrador:
-
-Manter (listar, mostrar, editar, remover) todos os posts.
-
-Manter (listar, mostrar, editar, remover) todos os comentários.
+**Administrador:**
+    Manter (listar, mostrar, editar, remover) todos os posts.
+    Manter (listar, mostrar, editar, remover) todos os comentários.
+    Interagir (curtir posts/comentários, seguir usuários).
+    Gerenciar denúncias.
 
 ## 4) Limites e suposições
-Limites: entrega final até o fim da disciplina (ex.: 2025-11-30); rodar no navegador; não usar serviços pagos.
-
-Suposições: internet disponível em laboratório; GitHub acessível; banco de dados remoto acessível; 10 min disponíveis para teste rápido.
-
-Plano B: sem internet → rodar local com SQLite e salvar dados em arquivo; sem tempo do professor → testar com 3 colegas.
+**Limites:** entrega final até o fim da disciplina (ex.: 2025-11-30); rodar no navegador; não usar serviços pagos.
+**Suposições:** internet disponível em laboratório; GitHub acessível; banco de dados remoto acessível; 10 min disponíveis para teste rápido.
+**Plano B:** sem internet → rodar local com SQLite e salvar dados em arquivo; sem tempo do professor → testar com 3 colegas.
 
 ## 5) Hipóteses + validação
-Valor: Se os usuários puderem criar posts e trocar comentários em um espaço dedicado, terão mais organização e clareza nas discussões do que em redes sociais.
-
-Validação: teste com 5 usuários; sucesso se ≥4 conseguirem criar post, comentar e editar sem ajuda.
-
-Viabilidade: Com app web (React + Express + banco em nuvem), criar e listar posts e comentários deve responder em menos de 1 segundo em 9 de cada 10 ações.
-
-Validação: medir no protótipo com 30 ações; meta: pelo menos 27/30 em até 1s.
+**Valor:** Se os usuários puderem criar posts e trocar comentários em um espaço dedicado, terão mais organização e clareza nas discussões do que em redes sociais.
+    *Validação:* teste com 5 usuários; sucesso se ≥4 conseguirem criar post, comentar e editar sem ajuda.
+**Viabilidade:** Com app web (React + Express + banco em nuvem), criar e listar posts e comentários deve responder em menos de 1 segundo em 9 de cada 10 ações.
+    *Validação:* medir no protótipo com 30 ações; meta: pelo menos 27/30 em até 1s.
 
 ## 6) Fluxo principal e primeira fatia
-Fluxo principal
+**Fluxo principal:**
+1.  Usuário cria conta e faz login.
+2.  Usuário acessa página de posts.
+3.  Usuário cria um post.
+4.  Outros usuários curtem e comentam no post.
+5.  Usuários podem seguir outros usuários.
+6.  Usuário pode editar ou remover seus posts/comentários.
+7.  Administrador pode moderar conteúdos.
 
-Usuário cria conta e faz login.
-
-Usuário acessa página de posts.
-
-Usuário cria um post.
-
-Outros usuários curtem e comentam no post.
-
-Usuários podem seguir outros usuários.
-
-Usuário pode editar ou remover seus posts/comentários.
-
-Administrador pode moderar conteúdos.
-
-Primeira fatia vertical
+**Primeira fatia vertical:**
 Inclui: login simples, criar post, listar posts, criar comentário.
 Critérios de aceite:
-
 Post criado → aparece na lista com título, autor e data.
-
 Comentário criado → aparece vinculado ao post.
-
 Logout → usuário não consegue mais criar/editar posts ou comentários.
 
 ## 7) Esboços de algumas telas (wireframes)
@@ -83,19 +67,23 @@ Painel do admin (listar/remover posts e comentários)
 
 Diagrama de contexto
 
-![Diagrama de contexto](imgs/diagrama_contexto.png)
+![Diagrama de contexto](imgs/context_diagram.png)
 
 Diagrama de Conteiner
 
-![Diagrama de conteiner](imgs/diagrama_conteiner.png)
+![Diagrama de conteiner](imgs/container_diagram.png)
 
 Diagrama de ERD
 
-![Diagrama ERD](imgs/diagrama_erd.png)
+![Diagrama ERD](imgs/erd_diagram.png)
 
-Diagrama de Sequencia
+Diagrama de Sequencia Incial (login e criar post)
 
-![Diagrama de sequencia](imgs/diagrama_sequencia.png)
+![Diagrama de sequencia inicial](imgs/sequence_diagram.png)
+
+Diagrama de Sequencia Secundário (feed e interações)
+
+![Diagrama de sequencia secundário](imgs/sequence2_diagram.png)
 
 ## 8) Tecnologias
 
@@ -109,7 +97,7 @@ Diagrama de Sequencia
 **Hospedagem:** Github Pages
 
 ### 8.3 Back-end (API/servidor, se existir)
-**Back-end (API):** JavaScript com Express 
+**Back-end (API):** Node.js com Express 
 **Banco de dados:** Postgres
 **Deploy do back-end:** Render.
 
@@ -126,7 +114,7 @@ Like - ação de curtir posts ou comentários.
 
 Seguidores - ação de seguir outros usuários.
 
-Denúncias - denuncia posts, comentários ou usuários.
+Denúncias - denúncia de posts, comentários ou usuários.
 
 ### 9.2 Campos por entidade
 
@@ -137,9 +125,10 @@ Denúncias - denuncia posts, comentários ou usuários.
 | nome            | texto                         | sim         | "Ana Souza"        |
 | usuario         | texto                         | sim         | "ana_souza"        |
 | email           | texto                         | sim (único) | "ana@exemplo.com"  |
+| bio             | texto                         | não         | "desenvolvedor fs" |
 | senha_hash      | texto                         | sim         | "$2a$10$..."       |
 | papel           | número (0=usuario, 1=admin)   | sim         | 0                  |
-| url_perfil_foto | texto                         | nao         | "fgdsfsafag"
+| url_perfil_foto | texto                         | nao         | "fgdsfsafag"       |
 | dataCriacao     | data/hora                     | sim         | 2025-08-20 14:30   |
 | dataAtualizacao | data/hora                     | sim         | 2025-08-20 15:10   |
 
@@ -150,6 +139,7 @@ Denúncias - denuncia posts, comentários ou usuários.
 | Usuario_id      | número (fk)        | sim         | 1                       |
 | tipo            | número             | sim         | "0"                     |
 | conteudo        | texto              | sim         | "React é..."            |
+| url_arquivo     | texto              | nao         | "fgdsfsafag"       |
 | dataCriacao     | data/hora          | sim         | 2025-08-20 14:35        |
 | dataAtualizacao | data/hora          | sim         | 2025-08-20 14:50        |
 
@@ -185,6 +175,17 @@ Denúncias - denuncia posts, comentários ou usuários.
 | id              | número             | sim         | 2                       |
 | idSeguindo      | número (fk)        | sim         | 1                       |
 | idSeguidor      | numero (fk)        | sim         | 5                       |
+| dataCriacao     | data/hora          | sim         | 2025-08-20 14:35        |
+
+### Denúncias
+| Campo           | Tipo               | Obrigatório | Exemplo                 |
+|-----------------|--------------------|-------------|-------------------------|
+| id              | número             | sim         | 2                       |
+| denunciante_id  | número (fk)        | sim         | 1                       |
+| usuario_id_denunciado      | numero (fk)        | não         | 5                       |
+| post_id         | número (fk)        | não         | 1                       |
+| comentario_id   | número (fk)        | não         | 1                       |
+| motivo          | texto              | sim         | "Conteúdo ofensivo"     |
 | dataCriacao     | data/hora          | sim         | 2025-08-20 14:35        |
 
 
@@ -409,7 +410,13 @@ PG_DATABASE_ADMIN=postgres
 DB_DATABASE_ADMIN_PASSWORD=senha
 
 # CAMINHO PARA O SQL DO BANCO EM POSTGRES
-PSQL_PATH="C:\Program Files\PostgreSQL\17\bin\psql.exe"
+DB_DATABASE_FILE_PATH=./src/database/banco.sql
+
+# CONFIGURAÇÃO JWT
+JWT_ACCESS_SECRET=meu-segredo-jwt-access
+JWT_REFRESH_SECRET=meu-segredo-jwt-refresh
+JWT_ACCESS_EXPIRES=15m
+JWT_REFRESH_EXPIRES=7d
 ```
 
 ### 3) Instalar dependências 
@@ -418,7 +425,7 @@ npm install
 ```
 
 ### 4) Criar o banco de dados
-- Ajuste o caminho para o arquivo psql no .env.  
+- Ajuste o caminho para o arquivo do banco de dados no .env.  
 - Ajuste usuário/senha/porta conforme o seu Postgres.
 - Execute o seguinte script para criar e popular o banco de dados e depois para iniciar
 
@@ -445,13 +452,65 @@ O arquivo .env é necessário para configurar a conexão com o banco de dados e 
 | PSQL_PATH | (Opcional) Caminho completo para o executável psql.exe no Windows, caso não esteja no PATH do sistema.	 | C:\...\psql.exe     |
 
 ### 7) Endpoints da API
-Abaixo está a tabela com os endpoints disponíveis para o recurso de Posts.
+### 🔐 Autenticação e Usuários (`/api/usuarios`)
+| Método | Rota | Descrição |
+|---|---|---|
+| `POST` | `/register` | Cria nova conta. Body: `{ nome, usuario, email, senha }`. |
+| `POST` | `/login` | Autentica usuário. Retorna Access Token e define Cookie Refresh. |
+| `POST` | `/logout` | Encerra a sessão (limpa cookies). |
+| `POST` | `/refresh` | Renova o Access Token usando o cookie de Refresh Token. |
+| `POST` | `/foto` | Upload/Atualização da foto de perfil (Multipart/form-data). |
+| `PATCH` | `/me` | Atualiza dados do perfil (nome, bio). |
+| `GET` | `/perfil/:id` | Retorna dados públicos do perfil e contadores de seguidores. |
+| `GET` | `/search` | Busca usuários por nome ou username. Query: `?q=termo`. |
+| `GET` | `/sugestoes` | Retorna lista de usuários sugeridos para seguir. |
+| `DELETE` | `/me` | Exclui a própria conta. |
+| `DELETE` | `/admin/:id` | (Admin) Bane/Exclui um usuário específico. |
 
-| Método   | Rota             | Descrição               | Respostas (JSON)  |
-|----------|------------------|-------------------------|-------------------|  
-| GET      | /api/posts	      | Lista todos os posts.   |200 OK: [{ "id": 1, "usuario_id": 1, ... }] 500 Internal Server Error: { "erro": "erro interno" } |
-| GET      | /api/posts/:id	  | Mostra um post específico pelo ID. | 200 OK: { "id": 1, "usuario_id": 1, ... } 404 Not Found: { "erro": "não encontrado" } |
-| POST     | /api/posts	      | Cria um novo post. | 201 Created: { "id": 8, ... } 400 Bad Request: { "erro": "Campos obrigatórios..." } |
-| PUT      | /api/posts/:id   | Substitui completamente um post existente. | 200 OK: { "id": 1, ... } (com dados atualizados) 404 Not Found: { "erro": "não encontrado" } |
-| PATCH    | /api/posts/:id   | Atualiza parcialmente um post existente. | 200 OK: { "id": 1, ... } (com dados atualizados) 400 Bad Request: { "erro": "envie ao menos um campo..." } |
-| DELETE   | /api/posts/:id   | Deleta um post pelo ID. | 204 No Content (sem corpo de resposta) 404 Not Found: { "erro": "não encontrado" } |
+### 📝 Posts (`/api/posts`)
+| Método | Rota | Descrição |
+|---|---|---|
+| `GET` | `/` | Lista posts (Feed). Params: `page`, `limit`, `feed_type=following`, `only_media`, `liked_by`. |
+| `GET` | `/:id` | Detalhes de um post específico. |
+| `POST` | `/` | Cria novo post. Body: `{ conteudo, tipo }` + arquivo opcional. |
+| `PATCH` | `/:id` | Atualiza conteúdo do post. |
+| `DELETE` | `/:id` | Remove um post (Autor ou Admin). |
+
+### 💬 Comentários (`/api/comentarios`)
+| Método | Rota | Descrição |
+|---|---|---|
+| `GET` | `/posts/:id/comentarios` | Lista comentários de um post (Rota em `posts.routes`). |
+| `POST` | `/` | Cria comentário. Body: `{ post_id, conteudo }`. |
+| `PUT` | `/:id` | Atualiza comentário. |
+| `DELETE` | `/:id` | Deleta comentário. |
+
+### ❤️ Likes (`/api/likes`)
+| Método | Rota | Descrição |
+|---|---|---|
+| `POST` | `/posts/:id` | Curte um post. |
+| `DELETE` | `/posts/:id` | Descurte um post. |
+| `POST` | `/comentarios/:id` | Curte um comentário. |
+| `DELETE` | `/comentarios/:id` | Descurte um comentário. |
+
+### 👥 Seguidores (`/api/seguidores`)
+| Método | Rota | Descrição |
+|---|---|---|
+| `POST` | `/:id` | Segue o usuário do ID informado. |
+| `DELETE` | `/:id` | Deixa de seguir o usuário. |
+| `GET` | `/:id/seguindo` | Lista quem o usuário segue. |
+| `GET` | `/:id/seguidores` | Lista quem segue o usuário. |
+
+### 🚨 Denúncias (`/api/denuncias`)
+| Método | Rota | Descrição |
+|---|---|---|
+| `POST` | `/` | Cria denúncia sobre Post, Comentário ou Usuário. |
+| `GET` | `/` | (Admin) Lista todas as denúncias. |
+| `DELETE` | `/:id` | (Admin) Descarta/Remove uma denúncia. |
+
+## 8) Segurança e Estrutura
+**Rate Limiting:** Implementado para prevenir abusos. Limites globais e específicos para rotas de autenticação.
+**Gestão de Arquivos:** O sistema remove automaticamente do disco arquivos de mídia associados a posts ou perfis quando estes são excluídos ou atualizados.
+**Middlewares:**
+    `auth.js`: Validação de JWT.
+    `rateLimiters.js`: Controle de tráfego.
+    `multer.config.js`: Filtro de upload para imagens e vídeos.
