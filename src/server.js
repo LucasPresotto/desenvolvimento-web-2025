@@ -47,7 +47,7 @@ app.use(cookieParser());
 
 const allowedOrigins = [
     "http://localhost:5173",
-    "https://LucasPresotto.github.io"
+    "https://lucaspresotto.github.io"
 ];
 
 app.use(
