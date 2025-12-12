@@ -67,7 +67,7 @@ function cookieOpts(req) {
     // e Max-Age para expiração no cliente.
     return {
         httpOnly: true,
-        sameSite: "Lax",
+        sameSite: isProduction ? "None" : "Lax",
         secure: isProduction,            // simples: HTTP em dev; quando for subir HTTPS, troque para true
         // Path define o prefixo de URL no qual o navegador anexa o cookie. 
         // Em Express, req.baseUrl é o caminho onde esse router foi montado; 

@@ -25,6 +25,7 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import path from "path";
 import { authMiddleware } from "./middlewares/auth.js";
+import { globalLimiter, authLimiter } from "./middlewares/rateLimiters.js";
 import postsRouter from "./routes/posts.routes.js";
 import usuariosRouter from "./routes/usuarios.routes.js";
 import comentariosRouter from "./routes/comentarios.routes.js";
@@ -38,9 +39,6 @@ const app = express();
 // Confiança no proxy (necessário para deploy em serviços como Render/Heroku)
 app.set("trust proxy", 1);
 
-// Habilita CORS com credenciais (permite cookies entre domínios)
-app.use(cors({ origin: true, credentials: true }));
-
 // Habilita o Express a ler JSON do corpo das requisições
 app.use(express.json());
 
@@ -51,6 +49,30 @@ const allowedOrigins = [
     "http://localhost:5173",
     "https://LucasPresotto.github.io"
 ];
+
+app.use(
+    cors({
+        origin: (origin, callback) => {
+            // Requisições sem Origin (ex.: curl, ferramentas internas) são aceitas
+            if (!origin) {
+                return callback(null, true);
+            }
+
+            if (allowedOrigins.includes(origin)) {
+                return callback(null, true);
+            }
+
+            console.warn(`Origem bloqueada pelo CORS: ${origin}`);
+            return callback(new Error(`Origin ${origin} não permitida pelo CORS`));
+        },
+        credentials: true,
+    })
+);
+
+app.use("/api", globalLimiter);
+
+app.use("/api/usuarios/login", authLimiter);
+app.use("/api/usuarios/register", authLimiter);
 
 // CONFIGURAÇÃO PARA SERVIR IMAGENS (ARQUIVOS ESTÁTICOS)
 // Isso permite que URLs como /uploads/imagem.jpg funcionem
@@ -107,5 +129,15 @@ app.use("/api/denuncias", authMiddleware, denunciasRouter);
 // - app.listen inicia o servidor e imprime no console a URL local para teste.
 // -----------------------------------------------------------------------------
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`http://localhost:${PORT}`));
-// Abra esse endereço no navegador para ver a rota GET / (a lista de endpoints).
+// No Render essa env vem pronta, tipo: "https://node-chamados-backend-2025.onrender.com"
+const externalUrl = process.env.RENDER_EXTERNAL_URL;
+
+// Sobe o servidor HTTP e loga informações úteis no console
+const server = app.listen(PORT, () => {
+    const baseUrl = externalUrl || `http://localhost:${PORT}`;
+    console.log(`Servidor rodando em ${baseUrl}`);
+    console.log("CORS configurado. Origens permitidas:", allowedOrigins);
+});
+
+server.keepAliveTimeout = 120 * 1000;
+server.headersTimeout = 120 * 1000;
